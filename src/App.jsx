@@ -4,6 +4,7 @@ import PricingPage from './pages/PricingPage'
 import DashboardPage from './pages/DashboardPage'
 import AIStudioDemo from './pages/AIStudioDemo'
 import JapanOverview from './pages/JapanOverview'
+import ProjectTracker from './pages/ProjectTracker'
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="studio" element={<AIStudioDemo />} />
         <Route path="japan" element={<JapanOverview />} />
+        <Route path="projects" element={<ProjectTracker />} />
       </Route>
     </Routes>
   )

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
-import { Sparkles, LayoutDashboard, CreditCard, MessageSquare, Flag, Gift } from 'lucide-react'
+import { Sparkles, LayoutDashboard, CreditCard, MessageSquare, Flag, Gift, ClipboardList } from 'lucide-react'
 import UsageNotificationBar from './UsageNotificationBar'
 import LanguageToggle from './LanguageToggle'
 import ReferralModal from './ReferralModal'
@@ -80,6 +80,19 @@ export default function Layout() {
               >
                 <Flag className="w-4 h-4" />
                 {t('nav.japanOverview')}
+              </NavLink>
+              <NavLink
+                to="/projects"
+                className={({ isActive }) =>
+                  `flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-purple-50 text-purple-700'
+                      : 'text-sw-gray-600 hover:bg-sw-gray-100'
+                  }`
+                }
+              >
+                <ClipboardList className="w-4 h-4" />
+                {t('nav.projectTracker')}
               </NavLink>
             </nav>
 
