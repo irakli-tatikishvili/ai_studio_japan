@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, Check, X, Loader2, RefreshCw } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Plus, Trash2, Loader2, RefreshCw } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useLanguage } from '../context/LanguageContext'
 
@@ -18,13 +18,139 @@ const TEAM_OPTIONS = [
   'GTM',
 ]
 
+function EditableCell({ value, onChange, type = 'text', options = [], placeholder = '' }) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [editValue, setEditValue] = useState(value || '')
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus()
+      if (type === 'text' || type === 'number') {
+        inputRef.current.select()
+      }
+    }
+  }, [isEditing, type])
+
+  useEffect(() => {
+    setEditValue(value || '')
+  }, [value])
+
+  const handleSave = () => {
+    setIsEditing(false)
+    if (editValue !== value) {
+      onChange(type === 'number' ? (editValue ? parseFloat(editValue) : null) : editValue)
+    }
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSave()
+    } else if (e.key === 'Escape') {
+      setEditValue(value || '')
+      setIsEditing(false)
+    }
+  }
+
+  if (isEditing) {
+    if (type === 'select') {
+      return (
+        <select
+          ref={inputRef}
+          value={editValue}
+          onChange={(e) => {
+            setEditValue(e.target.value)
+            onChange(e.target.value)
+            setIsEditing(false)
+          }}
+          onBlur={() => setIsEditing(false)}
+          className="w-full px-2 py-1 text-sm border border-sw-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-sw-blue-500"
+        >
+          <option value="">{placeholder || 'Select...'}</option>
+          {options.map(opt => (
+            <option key={typeof opt === 'string' ? opt : opt.value} value={typeof opt === 'string' ? opt : opt.value}>
+              {typeof opt === 'string' ? opt : opt.label}
+            </option>
+          ))}
+        </select>
+      )
+    }
+
+    return (
+      <input
+        ref={inputRef}
+        type={type}
+        step={type === 'number' ? '0.5' : undefined}
+        value={editValue}
+        onChange={(e) => setEditValue(e.target.value)}
+        onBlur={handleSave}
+        onKeyDown={handleKeyDown}
+        className="w-full px-2 py-1 text-sm border border-sw-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-sw-blue-500"
+        placeholder={placeholder}
+      />
+    )
+  }
+
+  const displayValue = type === 'select' && options.length > 0
+    ? options.find(o => (typeof o === 'string' ? o : o.value) === value)?.label || value
+    : value
+
+  return (
+    <div
+      onClick={() => setIsEditing(true)}
+      className="cursor-pointer px-2 py-1 -mx-2 -my-1 rounded hover:bg-sw-blue-50 min-h-[28px] transition-colors"
+    >
+      {displayValue || <span className="text-sw-gray-400 italic">{placeholder || 'Click to edit'}</span>}
+    </div>
+  )
+}
+
+function StatusBadge({ value, onChange }) {
+  const [isEditing, setIsEditing] = useState(false)
+  const selectRef = useRef(null)
+
+  useEffect(() => {
+    if (isEditing && selectRef.current) {
+      selectRef.current.focus()
+    }
+  }, [isEditing])
+
+  const currentStatus = STATUS_OPTIONS.find(s => s.value === value) || STATUS_OPTIONS[0]
+
+  if (isEditing) {
+    return (
+      <select
+        ref={selectRef}
+        value={value || 'backlog'}
+        onChange={(e) => {
+          onChange(e.target.value)
+          setIsEditing(false)
+        }}
+        onBlur={() => setIsEditing(false)}
+        className="px-2 py-1 text-xs font-medium border border-sw-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-sw-blue-500"
+      >
+        {STATUS_OPTIONS.map(status => (
+          <option key={status.value} value={status.value}>{status.label}</option>
+        ))}
+      </select>
+    )
+  }
+
+  return (
+    <span
+      onClick={() => setIsEditing(true)}
+      className={`inline-flex px-2 py-1 text-xs font-medium rounded-full cursor-pointer hover:opacity-80 transition-opacity ${currentStatus.color}`}
+    >
+      {currentStatus.label}
+    </span>
+  )
+}
+
 export default function ProjectTracker() {
   const { t } = useLanguage()
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [editingId, setEditingId] = useState(null)
-  const [editForm, setEditForm] = useState({})
   const [showAddForm, setShowAddForm] = useState(false)
   const [newProject, setNewProject] = useState({
     item: '',
@@ -86,26 +212,17 @@ export default function ProjectTracker() {
     }
   }
 
-  async function updateProject(id) {
+  async function updateCell(id, field, value) {
     try {
       const { error } = await supabase
         .from('projects')
-        .update({
-          item: editForm.item,
-          description: editForm.description,
-          estimated_weeks: editForm.estimated_weeks ? parseFloat(editForm.estimated_weeks) : null,
-          delivered_by: editForm.delivered_by,
-          project_status: editForm.project_status,
-          owners: editForm.owners,
-        })
+        .update({ [field]: value })
         .eq('id', id)
 
       if (error) throw error
-      setProjects(projects.map(p => p.id === id ? { ...p, ...editForm } : p))
-      setEditingId(null)
-      setEditForm({})
+      setProjects(projects.map(p => p.id === id ? { ...p, [field]: value } : p))
     } catch (err) {
-      alert('Error updating project: ' + err.message)
+      alert('Error updating: ' + err.message)
     }
   }
 
@@ -122,28 +239,6 @@ export default function ProjectTracker() {
     } catch (err) {
       alert('Error deleting project: ' + err.message)
     }
-  }
-
-  function startEditing(project) {
-    setEditingId(project.id)
-    setEditForm({
-      item: project.item || '',
-      description: project.description || '',
-      estimated_weeks: project.estimated_weeks || '',
-      delivered_by: project.delivered_by || '',
-      project_status: project.project_status || 'backlog',
-      owners: project.owners || '',
-    })
-  }
-
-  function cancelEditing() {
-    setEditingId(null)
-    setEditForm({})
-  }
-
-  function getStatusStyle(status) {
-    const statusOption = STATUS_OPTIONS.find(s => s.value === status)
-    return statusOption ? statusOption.color : 'bg-gray-100 text-gray-700'
   }
 
   if (loading) {
@@ -293,7 +388,7 @@ export default function ProjectTracker() {
                 <th className="text-left px-4 py-3 text-sm font-semibold text-sw-gray-700">{t('projects.deliveredBy')}</th>
                 <th className="text-left px-4 py-3 text-sm font-semibold text-sw-gray-700">{t('projects.status')}</th>
                 <th className="text-left px-4 py-3 text-sm font-semibold text-sw-gray-700">{t('projects.owners')}</th>
-                <th className="text-right px-4 py-3 text-sm font-semibold text-sw-gray-700">{t('projects.actions')}</th>
+                <th className="text-right px-4 py-3 text-sm font-semibold text-sw-gray-700 w-16"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-sw-gray-200">
@@ -306,111 +401,59 @@ export default function ProjectTracker() {
               ) : (
                 projects.map((project) => (
                   <tr key={project.id} className="hover:bg-sw-gray-50">
-                    {editingId === project.id ? (
-                      <>
-                        <td className="px-4 py-3">
-                          <input
-                            type="text"
-                            value={editForm.item}
-                            onChange={(e) => setEditForm({ ...editForm, item: e.target.value })}
-                            className="w-full px-2 py-1 border border-sw-gray-300 rounded text-sm"
-                          />
-                        </td>
-                        <td className="px-4 py-3">
-                          <input
-                            type="text"
-                            value={editForm.description}
-                            onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                            className="w-full px-2 py-1 border border-sw-gray-300 rounded text-sm"
-                          />
-                        </td>
-                        <td className="px-4 py-3">
-                          <input
-                            type="number"
-                            step="0.5"
-                            value={editForm.estimated_weeks}
-                            onChange={(e) => setEditForm({ ...editForm, estimated_weeks: e.target.value })}
-                            className="w-20 px-2 py-1 border border-sw-gray-300 rounded text-sm"
-                          />
-                        </td>
-                        <td className="px-4 py-3">
-                          <input
-                            type="text"
-                            value={editForm.delivered_by}
-                            onChange={(e) => setEditForm({ ...editForm, delivered_by: e.target.value })}
-                            className="w-full px-2 py-1 border border-sw-gray-300 rounded text-sm"
-                          />
-                        </td>
-                        <td className="px-4 py-3">
-                          <select
-                            value={editForm.project_status}
-                            onChange={(e) => setEditForm({ ...editForm, project_status: e.target.value })}
-                            className="px-2 py-1 border border-sw-gray-300 rounded text-sm"
-                          >
-                            {STATUS_OPTIONS.map(status => (
-                              <option key={status.value} value={status.value}>{status.label}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="px-4 py-3">
-                          <select
-                            value={editForm.owners}
-                            onChange={(e) => setEditForm({ ...editForm, owners: e.target.value })}
-                            className="px-2 py-1 border border-sw-gray-300 rounded text-sm"
-                          >
-                            <option value="">{t('projects.selectTeam')}</option>
-                            {TEAM_OPTIONS.map(team => (
-                              <option key={team} value={team}>{team}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-2">
-                            <button
-                              onClick={() => updateProject(project.id)}
-                              className="p-1 text-green-600 hover:bg-green-50 rounded"
-                            >
-                              <Check className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={cancelEditing}
-                              className="p-1 text-sw-gray-500 hover:bg-sw-gray-100 rounded"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td className="px-4 py-3 text-sm text-sw-dark font-medium">{project.item}</td>
-                        <td className="px-4 py-3 text-sm text-sw-gray-600 max-w-xs truncate">{project.description}</td>
-                        <td className="px-4 py-3 text-sm text-sw-gray-600">{project.estimated_weeks || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-sw-gray-600">{project.delivered_by || '-'}</td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusStyle(project.project_status)}`}>
-                            {STATUS_OPTIONS.find(s => s.value === project.project_status)?.label || project.project_status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-sw-gray-600">{project.owners || '-'}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-2">
-                            <button
-                              onClick={() => startEditing(project)}
-                              className="p-1 text-sw-gray-500 hover:bg-sw-gray-100 rounded"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => deleteProject(project.id)}
-                              className="p-1 text-red-500 hover:bg-red-50 rounded"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </>
-                    )}
+                    <td className="px-4 py-3 text-sm text-sw-dark font-medium">
+                      <EditableCell
+                        value={project.item}
+                        onChange={(val) => updateCell(project.id, 'item', val)}
+                        placeholder={t('projects.itemPlaceholder')}
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-sm text-sw-gray-600 max-w-xs">
+                      <EditableCell
+                        value={project.description}
+                        onChange={(val) => updateCell(project.id, 'description', val)}
+                        placeholder={t('projects.descriptionPlaceholder')}
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-sm text-sw-gray-600">
+                      <EditableCell
+                        value={project.estimated_weeks}
+                        onChange={(val) => updateCell(project.id, 'estimated_weeks', val)}
+                        type="number"
+                        placeholder="0"
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-sm text-sw-gray-600">
+                      <EditableCell
+                        value={project.delivered_by}
+                        onChange={(val) => updateCell(project.id, 'delivered_by', val)}
+                        placeholder={t('projects.deliveredByPlaceholder')}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge
+                        value={project.project_status}
+                        onChange={(val) => updateCell(project.id, 'project_status', val)}
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-sm text-sw-gray-600">
+                      <EditableCell
+                        value={project.owners}
+                        onChange={(val) => updateCell(project.id, 'owners', val)}
+                        type="select"
+                        options={TEAM_OPTIONS}
+                        placeholder={t('projects.selectTeam')}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => deleteProject(project.id)}
+                        className="p-1 text-red-500 hover:bg-red-50 rounded"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
