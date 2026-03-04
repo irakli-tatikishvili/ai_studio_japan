@@ -44,7 +44,7 @@ export default function ProjectTracker() {
     setError(null)
     try {
       const { data, error } = await supabase
-        .from('public_projects')
+        .from('projects')
         .select('*')
 
       if (error) throw error
@@ -59,7 +59,7 @@ export default function ProjectTracker() {
   async function addProject() {
     try {
       const { data, error } = await supabase
-        .from('public_projects')
+        .from('projects')
         .insert([{
           item: newProject.item,
           description: newProject.description,
@@ -89,7 +89,7 @@ export default function ProjectTracker() {
   async function updateProject(id) {
     try {
       const { error } = await supabase
-        .from('public_projects')
+        .from('projects')
         .update({
           item: editForm.item,
           description: editForm.description,
@@ -113,7 +113,7 @@ export default function ProjectTracker() {
     if (!confirm('Are you sure you want to delete this project?')) return
     try {
       const { error } = await supabase
-        .from('public_projects')
+        .from('projects')
         .delete()
         .eq('id', id)
 
