@@ -35,9 +35,6 @@ export const PLANS = {
       'features.credits100',
       'features.noRollover',
       'features.noDeepResearch',
-      'features.webBasicOnly',
-      'features.allCountries',
-      'features.history15Months',
     ],
   },
   starter: {
@@ -63,10 +60,6 @@ export const PLANS = {
       'features.credits250',
       'features.rollover1Month',
       'features.noDeepResearch',
-      'features.webFullAccess',
-      'features.allCountries',
-      'features.history15Months',
-      'features.emailSupport',
     ],
   },
   pro: {
@@ -87,16 +80,13 @@ export const PLANS = {
       webFull: true,
       seoPaid: true,       // SEO and Paid data
       apps: false,
+      dashboards: true,    // Dashboard access
     },
     features: [
       'features.credits500',
       'features.rollover3Months',
       'features.deepResearchIncluded',
-      'features.webFullAccess',
-      'features.seoPaidAccess',
-      'features.allCountries',
-      'features.history15Months',
-      'features.prioritySupport',
+      'features.dashboardAccess',
     ],
     popular: true,
   },
@@ -112,23 +102,19 @@ export const PLANS = {
       deepResearch: true,
     },
     dataAccess: {
-      historicalMonths: 15,
+      historicalMonths: 36,
       countries: 'all',
       webBasic: true,
       webFull: true,
       seoPaid: true,
       apps: true,          // App data
+      dashboards: true,    // Dashboard access
     },
     features: [
       'features.creditsCustom',
       'features.rolloverUnlimited',
       'features.deepResearchUnlimited',
-      'features.webFullAccess',
-      'features.seoPaidAccess',
-      'features.appsAccess',
-      'features.allCountries',
-      'features.history15Months',
-      'features.dedicatedCSM',
+      'features.dashboardAccess',
     ],
   },
 }

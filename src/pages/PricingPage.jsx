@@ -1,25 +1,224 @@
 import { useState } from 'react'
-import { Check, X, Sparkles, Zap, Building2, ArrowRight, Globe, BarChart3, Search, Smartphone, Coins } from 'lucide-react'
+import { Check, X, Sparkles, Zap, Building2, ArrowRight, Globe, BarChart3, Search, Smartphone, Coins, ShoppingCart, TrendingUp, Plus, Gift, DollarSign, Layers, MessageSquare, Brain, CreditCard } from 'lucide-react'
 import { useUsage, PLANS, CREDIT_PACKAGE } from '../context/UsageContext'
 import { useLanguage } from '../context/LanguageContext'
+
+// Module-based pricing configuration
+// Credit costs are normalized: 1 credit ≈ $0.10 (Web as baseline)
+const MODULES = {
+  web: {
+    id: 'web',
+    name: 'Web Intelligence',
+    description: 'Traffic, engagement, marketing channels',
+    icon: Globe,
+    color: 'blue',
+    accessPrice: 49,
+    queryPrice: 0.10,
+    creditsPerQuery: 1,      // Base rate: 1 credit = 1 Web query
+    hasFreeeTier: true,
+    freeQueries: 20,
+    features: ['Traffic & Engagement', 'Marketing Channels', 'Audience Demographics', 'Competitor Benchmarks'],
+  },
+  search: {
+    id: 'search',
+    name: 'Search Intelligence',
+    description: 'SEO, keywords, paid search campaigns',
+    icon: Search,
+    color: 'green',
+    accessPrice: 79,
+    queryPrice: 0.15,
+    creditsPerQuery: 1.5,    // 1.5x Web cost
+    hasFreeeTier: false,
+    features: ['Organic Keywords', 'Paid Keywords', 'SERP Analysis', 'Backlink Data'],
+  },
+  apps: {
+    id: 'apps',
+    name: 'App Intelligence',
+    description: 'Mobile app downloads, usage, rankings',
+    icon: Smartphone,
+    color: 'purple',
+    accessPrice: 99,
+    queryPrice: 0.20,
+    creditsPerQuery: 2,      // 2x Web cost
+    hasFreeeTier: false,
+    features: ['App Downloads', 'Usage Metrics', 'Store Rankings', 'Review Analytics'],
+  },
+  stocks: {
+    id: 'stocks',
+    name: 'Stocks Intelligence',
+    description: 'Company financials, stock performance',
+    icon: TrendingUp,
+    color: 'amber',
+    accessPrice: 149,
+    queryPrice: 0.25,
+    creditsPerQuery: 2.5,    // 2.5x Web cost
+    hasFreeeTier: false,
+    features: ['Financial Metrics', 'Stock Performance', 'Investor Insights', 'Market Trends'],
+  },
+  amazon: {
+    id: 'amazon',
+    name: 'Amazon Intelligence',
+    description: 'E-commerce, product analytics, marketplace',
+    icon: ShoppingCart,
+    color: 'orange',
+    accessPrice: 129,
+    queryPrice: 0.22,
+    creditsPerQuery: 2.2,    // 2.2x Web cost
+    hasFreeeTier: false,
+    features: ['Product Rankings', 'Sales Estimates', 'Category Analysis', 'Seller Insights'],
+  },
+}
+
+// Trial credits configuration
+const TRIAL_CONFIG = {
+  credits: 50,
+  expiresInDays: 14,
+  creditValue: 0.10, // 1 credit = $0.10
+}
+
+// Pay-Per-Query pricing configuration (per module)
+const PAY_PER_QUERY_CONFIG = {
+  trialBalance: 5.00, // $5 free trial balance
+  modules: {
+    web: {
+      regularPrice: 0.10,
+      deepPrice: 0.50,
+    },
+    search: {
+      regularPrice: 0.15,
+      deepPrice: 0.75,
+    },
+    apps: {
+      regularPrice: 0.20,
+      deepPrice: 1.00,
+    },
+    stocks: {
+      regularPrice: 0.25,
+      deepPrice: 1.25,
+    },
+    amazon: {
+      regularPrice: 0.22,
+      deepPrice: 1.10,
+    },
+  },
+  topUpOptions: [
+    { amount: 10, bonus: 0, label: '$10' },
+    { amount: 25, bonus: 2.50, label: '$25 + $2.50 bonus' },
+    { amount: 50, bonus: 7.50, label: '$50 + $7.50 bonus' },
+    { amount: 100, bonus: 20, label: '$100 + $20 bonus' },
+  ],
+}
 
 export default function PricingPage() {
   const { subscription, upgradePlan } = useUsage()
   const { t } = useLanguage()
   const [billingCycle, setBillingCycle] = useState('monthly')
+  const [pricingModel, setPricingModel] = useState('tiers') // 'tiers', 'credits', or 'freeTier'
+  const [selectedModules, setSelectedModules] = useState([])
+  
+  // Simulated user trial state for Credits Pool option
+  const [userTrialState, setUserTrialState] = useState({
+    isOnTrial: true,
+    trialCredits: 50,
+    trialCreditsUsed: 12,
+    trialExpiresIn: 10, // days
+  })
+
+  // Simulated user balance for Pay-Per-Query option
+  const [userBalance, setUserBalance] = useState({
+    balance: 5.00, // $5 trial balance
+    isTrialBalance: true,
+    totalSpent: 0,
+    queriesUsed: { regular: 0, deep: 0 },
+  })
 
   const planOrder = ['free', 'starter', 'pro', 'enterprise']
+
+  const toggleModule = (moduleId) => {
+    setSelectedModules(prev => 
+      prev.includes(moduleId) 
+        ? prev.filter(id => id !== moduleId)
+        : [...prev, moduleId]
+    )
+  }
+
+  const calculateModuleTotal = () => {
+    // In freeTier mode, Web module is free if it's the only selected module
+    if (pricingModel === 'freeTier') {
+      const paidModules = selectedModules.filter(id => {
+        if (id === 'web' && MODULES.web.hasFreeeTier && selectedModules.length === 1) {
+          return false
+        }
+        return true
+      })
+      const accessTotal = paidModules.reduce((sum, id) => sum + MODULES[id].accessPrice, 0)
+      return billingCycle === 'yearly' ? Math.round(accessTotal * 0.83) : accessTotal
+    }
+    // In credits mode, all modules cost money (but you get trial credits)
+    const accessTotal = selectedModules.reduce((sum, id) => sum + MODULES[id].accessPrice, 0)
+    return billingCycle === 'yearly' ? Math.round(accessTotal * 0.83) : accessTotal
+  }
 
   return (
     <div className="py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-sw-blue-100 text-sw-blue-700 mb-4">
             {t('pricing.badge')}
           </span>
           <h1 className="text-4xl font-bold text-sw-dark mb-4">{t('pricing.title')}</h1>
           <p className="text-lg text-sw-gray-600 max-w-2xl mx-auto">{t('pricing.subtitle')}</p>
+        </div>
+
+        {/* Pricing Model Toggle - 4 Options */}
+        <div className="flex items-center justify-center gap-2 mb-8">
+          <div className="inline-flex bg-sw-gray-100 rounded-xl p-1 flex-wrap justify-center gap-1">
+            <button
+              onClick={() => setPricingModel('tiers')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                pricingModel === 'tiers'
+                  ? 'bg-white text-sw-dark shadow-sm'
+                  : 'text-sw-gray-600 hover:text-sw-dark'
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              {t('pricing.tierBased') || 'Tier-Based'}
+            </button>
+            <button
+              onClick={() => setPricingModel('credits')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                pricingModel === 'credits'
+                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-sm'
+                  : 'text-sw-gray-600 hover:text-sw-dark'
+              }`}
+            >
+              <Gift className="w-4 h-4" />
+              {t('pricing.moduleCredits') || 'Module + Credits'}
+            </button>
+            <button
+              onClick={() => setPricingModel('freeTier')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                pricingModel === 'freeTier'
+                  ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-sm'
+                  : 'text-sw-gray-600 hover:text-sw-dark'
+              }`}
+            >
+              <Globe className="w-4 h-4" />
+              {t('pricing.moduleFreeTier') || 'Module + Free Tier'}
+            </button>
+            <button
+              onClick={() => setPricingModel('payPerQuery')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                pricingModel === 'payPerQuery'
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-sm'
+                  : 'text-sw-gray-600 hover:text-sw-dark'
+              }`}
+            >
+              <DollarSign className="w-4 h-4" />
+              {t('pricing.payPerQuery') || 'Pay-Per-Query'}
+            </button>
+          </div>
         </div>
 
         {/* Billing Toggle */}
@@ -49,18 +248,736 @@ export default function PricingPage() {
           )}
         </div>
 
-        {/* Pricing Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          {planOrder.map((planId) => (
-            <PricingCard 
-              key={planId} 
-              planId={planId} 
-              billingCycle={billingCycle}
-              isCurrentPlan={subscription.plan === planId}
-              onUpgrade={upgradePlan}
-            />
-          ))}
-        </div>
+        {pricingModel === 'tiers' && (
+          <>
+            {/* Tier-Based Pricing Cards */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+              {planOrder.map((planId) => (
+                <PricingCard 
+                  key={planId} 
+                  planId={planId} 
+                  billingCycle={billingCycle}
+                  isCurrentPlan={subscription.plan === planId}
+                  onUpgrade={upgradePlan}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {pricingModel === 'credits' && (
+          <>
+            {/* Module-Based with Free Credits Pool */}
+            <div className="mb-8">
+              {/* Trial Credits Banner */}
+              <div className="max-w-4xl mx-auto mb-6">
+                <div className="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-2xl p-5 text-white">
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                        <Gift className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-xl">{t('pricing.freeCreditsPool') || 'Free Credits Pool'}</span>
+                          {userTrialState.isOnTrial && (
+                            <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs font-medium">
+                              {t('pricing.onTrial') || 'ON TRIAL'}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-white/80 text-sm mt-1">
+                          {t('pricing.creditsPoolDescNew') || '50 credits = ~50 Web queries or ~20 Amazon queries. Query any module!'}
+                        </p>
+                      </div>
+                    </div>
+                    {userTrialState.isOnTrial && (
+                      <div className="flex items-center gap-6">
+                        <div className="text-center">
+                          <div className="text-3xl font-bold">
+                            {userTrialState.trialCredits - userTrialState.trialCreditsUsed}
+                          </div>
+                          <div className="text-xs text-white/70">{t('pricing.creditsLeft') || 'credits left'}</div>
+                        </div>
+                        <div className="h-12 w-px bg-white/20" />
+                        <div className="text-center">
+                          <div className="text-3xl font-bold">{userTrialState.trialExpiresIn}</div>
+                          <div className="text-xs text-white/70">{t('pricing.daysRemaining') || 'days remaining'}</div>
+                        </div>
+                        <div className="w-32">
+                          <div className="bg-white/20 rounded-full h-2 mb-1">
+                            <div 
+                              className="bg-white rounded-full h-2 transition-all" 
+                              style={{ width: `${((userTrialState.trialCredits - userTrialState.trialCreditsUsed) / userTrialState.trialCredits) * 100}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-white/60 text-center">{userTrialState.trialCreditsUsed}/{userTrialState.trialCredits} used</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {!userTrialState.isOnTrial && (
+                    <button className="mt-4 px-6 py-2 bg-white text-purple-600 rounded-lg font-semibold hover:bg-white/90 transition-colors">
+                      {t('pricing.claimCredits') || 'Claim 50 Free Credits'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* How Credits Work */}
+              <div className="max-w-4xl mx-auto mb-6">
+                <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                  <h3 className="font-semibold text-purple-900 mb-3 flex items-center gap-2">
+                    <Coins className="w-5 h-5" />
+                    {t('pricing.howCreditsWork') || 'How Credits Work'}
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    {Object.values(MODULES).map(module => {
+                      const Icon = module.icon
+                      const queriesFor50 = Math.floor(50 / module.creditsPerQuery)
+                      return (
+                        <div key={module.id} className="bg-white rounded-lg p-3 text-center">
+                          <Icon className="w-5 h-5 mx-auto mb-1 text-purple-600" />
+                          <div className="text-xs text-sw-gray-500">{module.name.split(' ')[0]}</div>
+                          <div className="font-bold text-purple-700">{module.creditsPerQuery} {module.creditsPerQuery === 1 ? 'credit' : 'credits'}</div>
+                          <div className="text-xs text-sw-gray-400">per query</div>
+                          <div className="text-xs text-purple-600 mt-1">~{queriesFor50} queries</div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-center mb-6">
+                <h2 className="text-xl font-bold text-sw-dark mb-2">{t('pricing.selectModules') || 'Select Your Modules'}</h2>
+                <p className="text-sw-gray-600">{t('pricing.creditsModuleDescNew') || 'During trial, query any module using credits. Subscribe for unlimited access.'}</p>
+              </div>
+
+              {/* Module Cards for Credits Pool */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {Object.values(MODULES).map((module) => (
+                  <ModuleCard
+                    key={module.id}
+                    module={module}
+                    isSelected={selectedModules.includes(module.id)}
+                    onToggle={() => toggleModule(module.id)}
+                    billingCycle={billingCycle}
+                    isOnTrial={userTrialState.isOnTrial}
+                    trialType="credits"
+                  />
+                ))}
+              </div>
+
+              {/* Summary Card for Credits Pool */}
+              <div className="max-w-2xl mx-auto">
+                <div className="card p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-sw-dark">{t('pricing.yourPlan') || 'Your Custom Plan'}</h3>
+                    {userTrialState.isOnTrial && (
+                      <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold flex items-center gap-1">
+                        <Gift className="w-3 h-3" />
+                        {userTrialState.trialCredits - userTrialState.trialCreditsUsed} {t('pricing.creditsRemaining') || 'credits remaining'}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {selectedModules.length === 0 ? (
+                    <div className="text-center py-4">
+                      <p className="text-sw-gray-500 mb-2">{t('pricing.noModulesSelected') || 'Select modules above to build your plan'}</p>
+                      <p className="text-sm text-purple-600">
+                        {t('pricing.trialHintNew') || '💡 With 50 credits, you can make ~50 Web queries or ~20 Amazon queries!'}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-3 mb-4">
+                        {selectedModules.map(id => {
+                          const module = MODULES[id]
+                          const Icon = module.icon
+                          const remainingCredits = userTrialState.trialCredits - userTrialState.trialCreditsUsed
+                          const possibleQueries = Math.floor(remainingCredits / module.creditsPerQuery)
+                          return (
+                            <div key={id} className="flex items-center justify-between py-2 border-b border-sw-gray-100">
+                              <div className="flex items-center gap-3">
+                                <Icon className="w-5 h-5 text-sw-gray-500" />
+                                <div>
+                                  <span className="font-medium text-sw-dark">{module.name}</span>
+                                  <span className="text-xs text-purple-600 block">
+                                    {module.creditsPerQuery} {module.creditsPerQuery === 1 ? 'credit' : 'credits'}/query • ~{possibleQueries} queries left
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <span className="font-semibold text-sw-dark">
+                                  ${billingCycle === 'yearly' ? Math.round(module.accessPrice * 0.83) : module.accessPrice}/mo
+                                </span>
+                                <span className="text-xs text-sw-gray-500 block">
+                                  {t('pricing.afterTrial') || 'after trial'}
+                                </span>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                      {userTrialState.isOnTrial && (
+                        <div className="mb-4 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-purple-700 font-medium flex items-center gap-2">
+                              <Gift className="w-4 h-4" />
+                              {t('pricing.trialCreditsAvailable') || 'Trial credits available'}
+                            </span>
+                            <span className="font-bold text-purple-700">
+                              {userTrialState.trialCredits - userTrialState.trialCreditsUsed} {t('pricing.credits') || 'credits'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-purple-600 mt-1">
+                            {t('pricing.creditsApplyToAllNew') || 'Use credits across any module. Different modules cost different credits per query.'}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-4 border-t border-sw-gray-200">
+                        <div>
+                          <span className="text-sw-gray-600">{t('pricing.monthlyAccessAfterTrial') || 'Monthly Access (after trial)'}</span>
+                          {billingCycle === 'yearly' && (
+                            <span className="text-xs text-green-600 ml-2">17% off</span>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <span className="text-2xl font-bold text-sw-dark">${calculateModuleTotal()}</span>
+                          <span className="text-sw-gray-500">/{t('common.month')}</span>
+                        </div>
+                      </div>
+
+                      <button className="w-full mt-4 btn-primary py-3 flex items-center justify-center gap-2">
+                        {t('pricing.startTrial') || 'Start Free Trial'}
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+
+                      <p className="text-xs text-sw-gray-500 text-center mt-3">
+                        {t('pricing.trialNote') || 'No credit card required for trial. 50 free credits included.'}
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Credit Costs Table */}
+            <div className="max-w-4xl mx-auto mb-16">
+              <h3 className="text-lg font-bold text-sw-dark text-center mb-6">{t('pricing.creditCostsTable') || 'Credit Costs by Module'}</h3>
+              <div className="card overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-sw-gray-50">
+                    <tr>
+                      <th className="text-left px-4 py-3 text-sm font-semibold text-sw-gray-700">{t('pricing.module') || 'Module'}</th>
+                      <th className="text-right px-4 py-3 text-sm font-semibold text-sw-gray-700">{t('pricing.creditsPerQuery') || 'Credits/Query'}</th>
+                      <th className="text-right px-4 py-3 text-sm font-semibold text-sw-gray-700">{t('pricing.queriesWith50') || 'Queries with 50 Credits'}</th>
+                      <th className="text-right px-4 py-3 text-sm font-semibold text-sw-gray-700">{t('pricing.subscriptionPrice') || 'Subscription'}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-sw-gray-100">
+                    {Object.values(MODULES).map(module => {
+                      const Icon = module.icon
+                      const queriesFor50 = Math.floor(50 / module.creditsPerQuery)
+                      return (
+                        <tr key={module.id} className="hover:bg-sw-gray-50">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <Icon className="w-5 h-5 text-sw-gray-500" />
+                              <div>
+                                <span className="font-medium text-sw-dark">{module.name}</span>
+                                <span className="text-xs text-sw-gray-500 block">{module.description}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="font-bold text-purple-600">{module.creditsPerQuery}</span>
+                            <span className="text-sm text-sw-gray-500"> credits</span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="font-semibold text-sw-dark">~{queriesFor50}</span>
+                            <span className="text-sm text-sw-gray-500"> queries</span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="font-semibold text-sw-dark">${module.accessPrice}/mo</span>
+                            <span className="text-xs text-sw-gray-400 block">unlimited queries</span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-sw-gray-500 text-center mt-3">
+                {t('pricing.creditValueNote') || '1 credit ≈ $0.10 value. Web is the baseline at 1 credit/query.'}
+              </p>
+            </div>
+          </>
+        )}
+
+        {pricingModel === 'freeTier' && (
+          <>
+            {/* Module-Based with Free Module Tier (Web) */}
+            <div className="mb-8">
+              {/* Free Web Tier Banner */}
+              <div className="max-w-4xl mx-auto mb-6">
+                <div className="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl p-5 text-white">
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                        <Globe className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-xl">{t('pricing.freeWebTier') || 'Free Web Intelligence Tier'}</span>
+                          <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs font-medium">
+                            {t('pricing.alwaysFree') || 'ALWAYS FREE'}
+                          </span>
+                        </div>
+                        <p className="text-white/80 text-sm mt-1">
+                          {t('pricing.freeWebDescLong') || 'Get 20 free Web queries every month. No credit card required, no expiration.'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-center px-4 py-2 bg-white/10 rounded-xl">
+                        <div className="text-2xl font-bold">20</div>
+                        <div className="text-xs text-white/70">{t('pricing.freeQueriesMonth') || 'queries/month'}</div>
+                      </div>
+                      <button className="px-6 py-3 bg-white text-blue-600 rounded-xl font-semibold hover:bg-white/90 transition-colors">
+                        {t('pricing.startFree') || 'Start Free'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-center mb-6">
+                <h2 className="text-xl font-bold text-sw-dark mb-2">{t('pricing.selectModules') || 'Select Your Modules'}</h2>
+                <p className="text-sw-gray-600">{t('pricing.freeTierModuleDesc') || 'Web Intelligence is free forever. Add more modules as you need them.'}</p>
+              </div>
+
+              {/* Module Cards for Free Tier */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {Object.values(MODULES).map((module) => (
+                  <ModuleCard
+                    key={module.id}
+                    module={module}
+                    isSelected={selectedModules.includes(module.id)}
+                    onToggle={() => toggleModule(module.id)}
+                    billingCycle={billingCycle}
+                    isOnTrial={false}
+                    trialType="freeTier"
+                  />
+                ))}
+              </div>
+
+              {/* Summary Card for Free Tier */}
+              <div className="max-w-2xl mx-auto">
+                <div className="card p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-sw-dark">{t('pricing.yourPlan') || 'Your Custom Plan'}</h3>
+                  </div>
+                  
+                  {selectedModules.length === 0 ? (
+                    <div className="text-center py-4">
+                      <p className="text-sw-gray-500 mb-2">{t('pricing.noModulesSelected') || 'Select modules above to build your plan'}</p>
+                      <p className="text-sm text-blue-600">
+                        {t('pricing.freeTierHint') || '💡 Start with free Web Intelligence - 20 queries/month!'}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-3 mb-4">
+                        {selectedModules.map(id => {
+                          const module = MODULES[id]
+                          const Icon = module.icon
+                          const isFreeWebOnly = id === 'web' && module.hasFreeeTier && selectedModules.length === 1
+                          const isWebWithOthers = id === 'web' && module.hasFreeeTier && selectedModules.length > 1
+                          return (
+                            <div key={id} className="flex items-center justify-between py-2 border-b border-sw-gray-100">
+                              <div className="flex items-center gap-3">
+                                <Icon className="w-5 h-5 text-sw-gray-500" />
+                                <span className="font-medium text-sw-dark">{module.name}</span>
+                                {(isFreeWebOnly || isWebWithOthers) && (
+                                  <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
+                                    {t('pricing.freeTier') || 'Free Tier'}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                {isFreeWebOnly ? (
+                                  <>
+                                    <span className="font-semibold text-green-600">{t('common.free') || 'Free'}</span>
+                                    <span className="text-xs text-sw-gray-500 block">
+                                      {module.freeQueries} {t('pricing.freeQueriesMonth') || 'queries/month'}
+                                    </span>
+                                  </>
+                                ) : isWebWithOthers ? (
+                                  <>
+                                    <span className="font-semibold text-green-600">{t('common.free') || 'Free'}</span>
+                                    <span className="text-xs text-sw-gray-500 block">
+                                      {module.freeQueries} {t('pricing.freeQueriesMonth') || 'queries/month'}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="font-semibold text-sw-dark">
+                                      ${billingCycle === 'yearly' ? Math.round(module.accessPrice * 0.83) : module.accessPrice}/mo
+                                    </span>
+                                    <span className="text-xs text-sw-gray-500 block">
+                                      ${module.queryPrice}/query
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-4 border-t border-sw-gray-200">
+                        <div>
+                          <span className="text-sw-gray-600">{t('pricing.monthlyAccess') || 'Monthly Access Fee'}</span>
+                          {billingCycle === 'yearly' && calculateModuleTotal() > 0 && (
+                            <span className="text-xs text-green-600 ml-2">17% off</span>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          {calculateModuleTotal() === 0 ? (
+                            <span className="text-2xl font-bold text-green-600">{t('common.free') || 'Free'}</span>
+                          ) : (
+                            <>
+                              <span className="text-2xl font-bold text-sw-dark">${calculateModuleTotal()}</span>
+                              <span className="text-sw-gray-500">/{t('common.month')}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <button className="w-full mt-4 btn-primary py-3 flex items-center justify-center gap-2">
+                        {calculateModuleTotal() === 0 
+                          ? (t('pricing.startFree') || 'Start Free')
+                          : (t('pricing.getStarted') || 'Get Started')
+                        }
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+
+                      {calculateModuleTotal() > 0 && (
+                        <p className="text-xs text-sw-gray-500 text-center mt-3">
+                          {t('pricing.queryCharges') || 'Query charges are billed separately based on usage'}
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Query Pricing Table */}
+            <div className="max-w-4xl mx-auto mb-16">
+              <h3 className="text-lg font-bold text-sw-dark text-center mb-6">{t('pricing.queryCosts') || 'Query Costs by Module'}</h3>
+              <div className="card overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-sw-gray-50">
+                    <tr>
+                      <th className="text-left px-4 py-3 text-sm font-semibold text-sw-gray-700">{t('pricing.module') || 'Module'}</th>
+                      <th className="text-right px-4 py-3 text-sm font-semibold text-sw-gray-700">{t('pricing.accessFee') || 'Access Fee'}</th>
+                      <th className="text-right px-4 py-3 text-sm font-semibold text-sw-gray-700">{t('pricing.perQuery') || 'Per Query'}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-sw-gray-100">
+                    {Object.values(MODULES).map(module => {
+                      const Icon = module.icon
+                      return (
+                        <tr key={module.id} className="hover:bg-sw-gray-50">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <Icon className="w-5 h-5 text-sw-gray-500" />
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-sw-dark">{module.name}</span>
+                                  {module.hasFreeeTier && (
+                                    <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
+                                      {t('pricing.hasFreeTier') || 'Free tier'}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-xs text-sw-gray-500 block">{module.description}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {module.hasFreeeTier ? (
+                              <div>
+                                <span className="font-semibold text-green-600">{t('common.free') || 'Free'}</span>
+                                <span className="text-xs text-sw-gray-500 block">{module.freeQueries} queries</span>
+                                <span className="text-xs text-sw-gray-400">or ${module.accessPrice}/mo unlimited</span>
+                              </div>
+                            ) : (
+                              <span className="font-semibold text-sw-dark">${module.accessPrice}/mo</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="font-semibold text-green-600">${module.queryPrice}</span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+
+        {pricingModel === 'payPerQuery' && (
+          <>
+            {/* Pay-Per-Query Pricing */}
+            <div className="mb-8">
+              {/* Balance Banner */}
+              <div className="max-w-4xl mx-auto mb-6">
+                <div className="bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl p-5 text-white">
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                        <DollarSign className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-xl">{t('pricing.payPerQueryTitle') || 'Pay-Per-Query'}</span>
+                          {userBalance.isTrialBalance && (
+                            <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs font-medium">
+                              {t('pricing.trialBalance') || 'TRIAL BALANCE'}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-white/80 text-sm mt-1">
+                          {t('pricing.payPerQueryDesc') || 'No subscriptions. Just add balance and query. Pay only for what you use.'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <div className="text-center">
+                        <div className="text-3xl font-bold">${userBalance.balance.toFixed(2)}</div>
+                        <div className="text-xs text-white/70">{t('pricing.currentBalance') || 'current balance'}</div>
+                      </div>
+                      <button className="px-5 py-2 bg-white text-green-600 rounded-lg font-semibold hover:bg-white/90 transition-colors flex items-center gap-2">
+                        <CreditCard className="w-4 h-4" />
+                        {t('pricing.addFunds') || 'Add Funds'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Module Pricing Table */}
+              <div className="max-w-5xl mx-auto mb-8">
+                <div className="text-center mb-6">
+                  <h2 className="text-xl font-bold text-sw-dark mb-2">{t('pricing.modulePricing') || 'Pricing by Module'}</h2>
+                  <p className="text-sw-gray-600">{t('pricing.modulePricingDesc') || 'Each module has different pricing for regular queries and deep research.'}</p>
+                </div>
+
+                {/* Query Type Legend */}
+                <div className="flex items-center justify-center gap-6 mb-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-green-500 rounded"></div>
+                    <span className="text-sm text-sw-gray-600">
+                      <MessageSquare className="w-4 h-4 inline mr-1" />
+                      {t('pricing.regularQuery') || 'Regular Query'} - {t('pricing.regularQueryDesc') || 'Quick answers, data lookups'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-purple-500 rounded"></div>
+                    <span className="text-sm text-sw-gray-600">
+                      <Brain className="w-4 h-4 inline mr-1" />
+                      {t('pricing.deepResearch') || 'Deep Research'} - {t('pricing.deepResearchDesc') || 'Comprehensive analysis'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Module Cards Grid */}
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Object.values(MODULES).map((module) => {
+                    const Icon = module.icon
+                    const moduleConfig = PAY_PER_QUERY_CONFIG.modules[module.id]
+                    const regularQueriesWithBalance = Math.floor(userBalance.balance / moduleConfig.regularPrice)
+                    const deepQueriesWithBalance = Math.floor(userBalance.balance / moduleConfig.deepPrice)
+                    
+                    return (
+                      <div key={module.id} className="card p-5 hover:shadow-md transition-shadow">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                            module.color === 'blue' ? 'bg-blue-100' :
+                            module.color === 'green' ? 'bg-green-100' :
+                            module.color === 'purple' ? 'bg-purple-100' :
+                            module.color === 'amber' ? 'bg-amber-100' :
+                            'bg-orange-100'
+                          }`}>
+                            <Icon className={`w-5 h-5 ${
+                              module.color === 'blue' ? 'text-blue-600' :
+                              module.color === 'green' ? 'text-green-600' :
+                              module.color === 'purple' ? 'text-purple-600' :
+                              module.color === 'amber' ? 'text-amber-600' :
+                              'text-orange-600'
+                            }`} />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-sw-dark">{module.name}</h3>
+                            <p className="text-xs text-sw-gray-500">{module.description}</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          {/* Regular Query Price */}
+                          <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <MessageSquare className="w-4 h-4 text-green-600" />
+                              <span className="text-sm font-medium text-green-800">{t('pricing.regular') || 'Regular'}</span>
+                            </div>
+                            <div className="text-right">
+                              <span className="font-bold text-green-600">${moduleConfig.regularPrice.toFixed(2)}</span>
+                              <span className="text-xs text-green-600 block">~{regularQueriesWithBalance} with ${userBalance.balance.toFixed(2)}</span>
+                            </div>
+                          </div>
+
+                          {/* Deep Research Price */}
+                          <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <Brain className="w-4 h-4 text-purple-600" />
+                              <span className="text-sm font-medium text-purple-800">{t('pricing.deep') || 'Deep Research'}</span>
+                            </div>
+                            <div className="text-right">
+                              <span className="font-bold text-purple-600">${moduleConfig.deepPrice.toFixed(2)}</span>
+                              <span className="text-xs text-purple-600 block">~{deepQueriesWithBalance} with ${userBalance.balance.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Top-Up Options */}
+              <div className="max-w-4xl mx-auto mb-8">
+                <h3 className="text-lg font-bold text-sw-dark text-center mb-6">{t('pricing.topUpOptions') || 'Add Funds to Your Account'}</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {PAY_PER_QUERY_CONFIG.topUpOptions.map((option, idx) => (
+                    <button 
+                      key={idx}
+                      className={`card p-4 text-center hover:border-green-400 transition-all ${
+                        option.bonus > 0 ? 'border-2 border-green-200 bg-green-50' : ''
+                      }`}
+                    >
+                      <div className="text-2xl font-bold text-sw-dark">${option.amount}</div>
+                      {option.bonus > 0 && (
+                        <div className="text-sm text-green-600 font-medium">+${option.bonus.toFixed(2)} bonus</div>
+                      )}
+                      <div className="text-xs text-sw-gray-500 mt-1">
+                        = {Math.floor((option.amount + option.bonus) / PAY_PER_QUERY_CONFIG.modules.web.regularPrice)} Web queries
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* How It Works */}
+              <div className="max-w-4xl mx-auto mb-8">
+                <div className="bg-sw-gray-50 rounded-2xl p-6">
+                  <h3 className="text-lg font-bold text-sw-dark text-center mb-6">{t('pricing.howItWorks') || 'How It Works'}</h3>
+                  <div className="grid md:grid-cols-4 gap-6">
+                    <div className="text-center">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <span className="font-bold text-green-600">1</span>
+                      </div>
+                      <p className="text-sm text-sw-gray-600">{t('pricing.step1') || 'Sign up and get $5 free trial balance'}</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <span className="font-bold text-green-600">2</span>
+                      </div>
+                      <p className="text-sm text-sw-gray-600">{t('pricing.step2') || 'Ask any question - we deduct from your balance'}</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <span className="font-bold text-green-600">3</span>
+                      </div>
+                      <p className="text-sm text-sw-gray-600">{t('pricing.step3') || 'Top up anytime - no commitments or subscriptions'}</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <span className="font-bold text-green-600">4</span>
+                      </div>
+                      <p className="text-sm text-sw-gray-600">{t('pricing.step4') || 'Balance never expires - use it whenever you need'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Full Pricing Table */}
+              <div className="max-w-5xl mx-auto mb-16">
+                <h3 className="text-lg font-bold text-sw-dark text-center mb-6">{t('pricing.fullPricingTable') || 'Complete Pricing Table'}</h3>
+                <div className="card overflow-hidden overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-sw-gray-50">
+                      <tr>
+                        <th className="text-left px-4 py-3 text-sm font-semibold text-sw-gray-700">{t('pricing.module') || 'Module'}</th>
+                        <th className="text-center px-4 py-3 text-sm font-semibold text-green-700 bg-green-50">
+                          <MessageSquare className="w-4 h-4 inline mr-1" />
+                          {t('pricing.regularQuery') || 'Regular Query'}
+                        </th>
+                        <th className="text-center px-4 py-3 text-sm font-semibold text-purple-700 bg-purple-50">
+                          <Brain className="w-4 h-4 inline mr-1" />
+                          {t('pricing.deepResearch') || 'Deep Research'}
+                        </th>
+                        <th className="text-center px-4 py-3 text-sm font-semibold text-sw-gray-700">
+                          {t('pricing.with5Balance') || 'With $5 Balance'}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-sw-gray-100">
+                      {Object.values(MODULES).map(module => {
+                        const Icon = module.icon
+                        const config = PAY_PER_QUERY_CONFIG.modules[module.id]
+                        return (
+                          <tr key={module.id} className="hover:bg-sw-gray-50">
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <Icon className="w-5 h-5 text-sw-gray-500" />
+                                <div>
+                                  <span className="font-medium text-sw-dark">{module.name}</span>
+                                  <span className="text-xs text-sw-gray-500 block">{module.description}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-center bg-green-50/50">
+                              <span className="font-bold text-green-600">${config.regularPrice.toFixed(2)}</span>
+                            </td>
+                            <td className="px-4 py-3 text-center bg-purple-50/50">
+                              <span className="font-bold text-purple-600">${config.deepPrice.toFixed(2)}</span>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="text-sm text-green-600">{Math.floor(5 / config.regularPrice)} reg</span>
+                              <span className="text-sw-gray-400 mx-1">or</span>
+                              <span className="text-sm text-purple-600">{Math.floor(5 / config.deepPrice)} deep</span>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-sw-gray-500 text-center mt-3">
+                  {t('pricing.noSubscriptionNote') || 'No subscription required. Pay only for what you use. Balance never expires.'}
+                </p>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* FAQ Section */}
         <div className="max-w-3xl mx-auto">
@@ -75,6 +992,126 @@ export default function PricingPage() {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function ModuleCard({ module, isSelected, onToggle, billingCycle, isOnTrial, trialType }) {
+  const { t } = useLanguage()
+  const Icon = module.icon
+  const colorClasses = {
+    blue: { bg: 'bg-blue-50', icon: 'text-blue-600', border: 'border-blue-500', ring: 'ring-blue-500' },
+    green: { bg: 'bg-green-50', icon: 'text-green-600', border: 'border-green-500', ring: 'ring-green-500' },
+    purple: { bg: 'bg-purple-50', icon: 'text-purple-600', border: 'border-purple-500', ring: 'ring-purple-500' },
+    amber: { bg: 'bg-amber-50', icon: 'text-amber-600', border: 'border-amber-500', ring: 'ring-amber-500' },
+    orange: { bg: 'bg-orange-50', icon: 'text-orange-600', border: 'border-orange-500', ring: 'ring-orange-500' },
+  }
+  const colors = colorClasses[module.color]
+
+  const displayPrice = billingCycle === 'yearly' 
+    ? Math.round(module.accessPrice * 0.83) 
+    : module.accessPrice
+
+  const showFreeTierBadge = module.hasFreeeTier && trialType === 'freeTier'
+  const showTrialBadge = isOnTrial && trialType === 'credits'
+
+  return (
+    <div 
+      onClick={onToggle}
+      className={`card p-5 cursor-pointer transition-all relative ${
+        isSelected ? `ring-2 ${colors.ring} ${colors.bg}` : 'hover:border-sw-gray-300'
+      }`}
+    >
+      {/* Free Tier Badge for Web (only in freeTier mode) */}
+      {showFreeTierBadge && (
+        <div className="absolute -top-2 -right-2">
+          <span className="px-2 py-1 bg-green-500 text-white text-xs font-bold rounded-full shadow-sm">
+            {t('pricing.freeTierAvailable') || 'FREE TIER'}
+          </span>
+        </div>
+      )}
+
+      {/* Trial Badge (only in credits mode) */}
+      {showTrialBadge && (
+        <div className="absolute -top-2 -right-2">
+          <span className="px-2 py-1 bg-purple-500 text-white text-xs font-bold rounded-full shadow-sm flex items-center gap-1">
+            <Gift className="w-3 h-3" />
+            {t('pricing.tryWithTrial') || 'TRY FREE'}
+          </span>
+        </div>
+      )}
+
+      <div className="flex items-start justify-between mb-4">
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colors.bg}`}>
+          <Icon className={`w-6 h-6 ${colors.icon}`} />
+        </div>
+        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+          isSelected ? `${colors.border} ${colors.bg}` : 'border-sw-gray-300'
+        }`}>
+          {isSelected && <Check className={`w-4 h-4 ${colors.icon}`} />}
+        </div>
+      </div>
+
+      <h3 className="font-bold text-sw-dark mb-1">{module.name}</h3>
+      <p className="text-sm text-sw-gray-600 mb-4">{module.description}</p>
+
+      <div className="mb-4">
+        {trialType === 'credits' ? (
+          // Credits mode - show credit cost per query prominently
+          <div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl font-bold text-purple-600">{module.creditsPerQuery}</span>
+              <span className="text-sm text-sw-gray-500">{module.creditsPerQuery === 1 ? 'credit' : 'credits'}/query</span>
+            </div>
+            <div className="text-xs text-sw-gray-400 mt-1">
+              ${displayPrice}/mo {t('pricing.afterTrialUnlimited') || 'after trial (unlimited)'}
+            </div>
+          </div>
+        ) : showFreeTierBadge ? (
+          <div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl font-bold text-green-600">{t('common.free') || 'Free'}</span>
+              <span className="text-sm text-sw-gray-500">({module.freeQueries} {t('pricing.queriesMonth') || 'queries/mo'})</span>
+            </div>
+            <div className="text-xs text-sw-gray-400 mt-1">
+              {t('pricing.orUnlimited') || 'or'} ${displayPrice}/mo {t('pricing.forUnlimited') || 'for unlimited'}
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-bold text-sw-dark">${displayPrice}</span>
+            <span className="text-sw-gray-500">/mo</span>
+            <span className="text-xs text-sw-gray-400 ml-2">+ ${module.queryPrice}/query</span>
+          </div>
+        )}
+      </div>
+
+      <ul className="space-y-2">
+        {module.features.map((feature, idx) => (
+          <li key={idx} className="flex items-center gap-2 text-sm text-sw-gray-600">
+            <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+            {feature}
+          </li>
+        ))}
+      </ul>
+
+      {/* Hint at bottom based on trial type */}
+      {trialType === 'credits' && isOnTrial && (
+        <div className="mt-4 pt-3 border-t border-sw-gray-100">
+          <p className="text-xs text-purple-600 flex items-center gap-1">
+            <Coins className="w-3 h-3" />
+            {t('pricing.queriesWithCredits', { count: Math.floor(50 / module.creditsPerQuery) }) || `~${Math.floor(50 / module.creditsPerQuery)} queries with 50 credits`}
+          </p>
+        </div>
+      )}
+      {trialType === 'freeTier' && showFreeTierBadge && (
+        <div className="mt-4 pt-3 border-t border-sw-gray-100">
+          <p className="text-xs text-green-600 flex items-center gap-1">
+            <Check className="w-3 h-3" />
+            {t('pricing.noCardRequired') || 'No credit card required'}
+          </p>
+        </div>
+      )}
     </div>
   )
 }
@@ -109,7 +1146,6 @@ function PricingCard({ planId, billingCycle, isCurrentPlan, onUpgrade }) {
     enterprise: <Building2 className="w-6 h-6" />,
   }
 
-  // Credit options for each plan (multipliers of base credits)
   const creditOptions = planId === 'free' ? [] : planId === 'enterprise' ? [] : [
     { credits: plan.credits, price: plan.price, label: `${plan.credits} ${t('pricing.creditsMonth')}` },
     { credits: plan.credits * 2, price: Math.round(plan.price * 1.8), label: `${plan.credits * 2} ${t('pricing.creditsMonth')}` },
@@ -133,7 +1169,6 @@ function PricingCard({ planId, billingCycle, isCurrentPlan, onUpgrade }) {
         </span>
       )}
 
-      {/* Header - Fixed Height */}
       <div className="h-16 flex items-center gap-3 mb-4">
         <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
           planId === 'free' ? 'bg-gray-100 text-gray-600' :
@@ -148,12 +1183,10 @@ function PricingCard({ planId, billingCycle, isCurrentPlan, onUpgrade }) {
         </div>
       </div>
 
-      {/* Description - Fixed Height */}
       <div className="h-12 mb-4">
         <p className="text-sm text-sw-gray-600">{t(`pricing.${planId}Desc`)}</p>
       </div>
 
-      {/* Price - Fixed Height */}
       <div className="h-12 mb-4">
         {plan.price === -1 ? (
           <p className="text-2xl font-bold text-sw-dark">{t('common.contactSales')}</p>
@@ -165,7 +1198,6 @@ function PricingCard({ planId, billingCycle, isCurrentPlan, onUpgrade }) {
         )}
       </div>
 
-      {/* Credits Dropdown/Badge - Fixed Height */}
       <div className="h-14 mb-4">
         {creditOptions.length > 0 ? (
           <div className="relative">
@@ -220,7 +1252,6 @@ function PricingCard({ planId, billingCycle, isCurrentPlan, onUpgrade }) {
         )}
       </div>
 
-      {/* CTA Button - Fixed Position */}
       <button
         onClick={() => onUpgrade(planId)}
         disabled={isCurrentPlan}
@@ -238,29 +1269,10 @@ function PricingCard({ planId, billingCycle, isCurrentPlan, onUpgrade }) {
         {!isCurrentPlan && plan.price !== -1 && <ArrowRight className="w-4 h-4" />}
       </button>
 
-      {/* Features - Flex Grow to push data types to bottom */}
-      <ul className="mt-6 space-y-3 flex-grow">
-        {plan.features.map((featureKey, idx) => {
-          const isNegative = featureKey.includes('noRollover') || featureKey.includes('noDeepResearch')
-          return (
-            <li key={idx} className="flex items-start gap-2 text-sm">
-              {isNegative ? (
-                <X className="w-4 h-4 text-sw-gray-300 mt-0.5 flex-shrink-0" />
-              ) : (
-                <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-              )}
-              <span className={isNegative ? 'text-sw-gray-400' : 'text-sw-gray-600'}>
-                {t(featureKey)}
-              </span>
-            </li>
-          )
-        })}
-      </ul>
-
-      {/* Data Types - Always at Bottom */}
-      <div className="mt-6 pt-4 border-t border-sw-gray-100">
+      {/* Data Access - Prominent position */}
+      <div className="mt-5 pt-4 border-t border-sw-gray-100">
         <p className="text-xs font-semibold text-sw-gray-500 mb-2">{t('dataAccess.dataTypes')}</p>
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <DataTypeRow 
             icon={<Globe className="w-3 h-3" />}
             label={t('dataAccess.webBasic')}
@@ -281,6 +1293,41 @@ function PricingCard({ planId, billingCycle, isCurrentPlan, onUpgrade }) {
             label={t('dataAccess.appsData')}
             included={plan.dataAccess.apps}
           />
+        </div>
+      </div>
+
+      {/* Features - Credits & Deep Research */}
+      <ul className="mt-4 space-y-2 flex-grow">
+        {plan.features.map((featureKey, idx) => {
+          const isNegative = featureKey.includes('noRollover') || featureKey.includes('noDeepResearch')
+          return (
+            <li key={idx} className="flex items-start gap-2 text-sm">
+              {isNegative ? (
+                <X className="w-4 h-4 text-sw-gray-300 mt-0.5 flex-shrink-0" />
+              ) : (
+                <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+              )}
+              <span className={isNegative ? 'text-sw-gray-400' : 'text-sw-gray-600'}>
+                {t(featureKey)}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+
+      {/* Historical Data & Country Access - Bottom */}
+      <div className="mt-4 pt-3 border-t border-sw-gray-100">
+        <div className="flex items-center gap-2 text-xs text-sw-gray-500">
+          <Check className="w-3 h-3 text-green-500" />
+          <span>
+            {plan.dataAccess.historicalMonths >= 36 
+              ? t('features.history36Months') 
+              : t('features.history15Months')}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-sw-gray-500 mt-1">
+          <Check className="w-3 h-3 text-green-500" />
+          <span>{t('features.allCountries')}</span>
         </div>
       </div>
     </div>
