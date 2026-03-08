@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, X, Sparkles, Zap, Building2, ArrowRight, Monitor, Smartphone, ShoppingCart, Coins } from 'lucide-react'
+import { Check, X, Sparkles, Zap, Building2, ArrowRight, Globe, BarChart3, Search, Smartphone, Coins } from 'lucide-react'
 import { useUsage, PLANS, CREDIT_PACKAGE } from '../context/UsageContext'
 import { useLanguage } from '../context/LanguageContext'
 
@@ -262,19 +262,24 @@ function PricingCard({ planId, billingCycle, isCurrentPlan, onUpgrade }) {
         <p className="text-xs font-semibold text-sw-gray-500 mb-2">{t('dataAccess.dataTypes')}</p>
         <div className="space-y-1">
           <DataTypeRow 
-            icon={<Monitor className="w-3 h-3" />}
-            label={t('dataAccess.webData')}
-            included={plan.dataAccess.web}
+            icon={<Globe className="w-3 h-3" />}
+            label={t('dataAccess.webBasic')}
+            included={plan.dataAccess.webBasic}
+          />
+          <DataTypeRow 
+            icon={<BarChart3 className="w-3 h-3" />}
+            label={t('dataAccess.webFull')}
+            included={plan.dataAccess.webFull}
+          />
+          <DataTypeRow 
+            icon={<Search className="w-3 h-3" />}
+            label={t('dataAccess.seoPaid')}
+            included={plan.dataAccess.seoPaid}
           />
           <DataTypeRow 
             icon={<Smartphone className="w-3 h-3" />}
-            label={t('dataAccess.appData')}
-            included={plan.dataAccess.app}
-          />
-          <DataTypeRow 
-            icon={<ShoppingCart className="w-3 h-3" />}
-            label={t('dataAccess.retailData')}
-            included={plan.dataAccess.retail}
+            label={t('dataAccess.appsData')}
+            included={plan.dataAccess.apps}
           />
         </div>
       </div>
