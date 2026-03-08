@@ -5,12 +5,38 @@ import {
   RefreshCw, 
   TrendingUp,
   Target,
-  Flag
+  Flag,
+  DollarSign,
+  CreditCard,
+  Repeat,
+  Mail,
+  Phone,
+  Calendar,
+  MessageSquare,
+  BarChart3
 } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
 
 export default function JapanOverview() {
   const { t } = useLanguage()
+
+  // Self Serve KPIs (goals to track)
+  const selfServeKPIs = [
+    { id: 'mrr', label: t('business.mrr'), icon: <DollarSign className="w-5 h-5" /> },
+    { id: 'collection', label: t('business.collection'), icon: <CreditCard className="w-5 h-5" /> },
+    { id: 'ltv', label: t('business.ltv'), icon: <TrendingUp className="w-5 h-5" /> },
+    { id: 'arpu', label: t('business.arpu'), icon: <BarChart3 className="w-5 h-5" /> },
+    { id: 'churn', label: t('business.churn'), icon: <Repeat className="w-5 h-5" /> },
+  ]
+
+  // Touch Pipeline KPIs (goals to track)
+  const touchPipelineKPIs = [
+    { id: 'mqls', label: t('business.mqls'), icon: <Users className="w-5 h-5" /> },
+    { id: 'contactUs', label: t('business.contactUs'), icon: <Mail className="w-5 h-5" /> },
+    { id: 'meetings', label: t('business.meetings'), icon: <Calendar className="w-5 h-5" /> },
+    { id: 'demos', label: t('business.demos'), icon: <MessageSquare className="w-5 h-5" /> },
+    { id: 'opportunities', label: t('business.opportunities'), icon: <Target className="w-5 h-5" /> },
+  ]
 
   const metrics = [
     {
@@ -81,28 +107,87 @@ export default function JapanOverview() {
   return (
     <div className="py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
+        {/* Page Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-              <Flag className="w-5 h-5 text-red-600" />
+            <div className="w-10 h-10 bg-sw-blue-100 rounded-lg flex items-center justify-center">
+              <BarChart3 className="w-5 h-5 text-sw-blue-600" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-sw-dark">{t('japan.title')}</h1>
-              <p className="text-sw-gray-500">{t('japan.subtitle')}</p>
+              <h1 className="text-3xl font-bold text-sw-dark">{t('business.title')}</h1>
+              <p className="text-sw-gray-500">{t('business.subtitle')}</p>
             </div>
           </div>
         </div>
 
-        {/* Q4 Badge */}
-        <div className="mb-6">
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-sw-blue-100 text-sw-blue-700">
-            Q4 2025
-          </span>
+        {/* ==================== SECTION A: Goals & KPIs ==================== */}
+        <div className="mb-10 p-6 bg-gradient-to-r from-sw-blue-50 to-purple-50 rounded-2xl border border-sw-blue-100">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-sw-blue-600 rounded-xl flex items-center justify-center">
+              <Target className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-sw-dark">{t('business.sectionA')}</h2>
+              <p className="text-sm text-sw-gray-500">{t('business.sectionADesc')}</p>
+            </div>
+          </div>
+          
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* Self Serve $ */}
+            <div className="card p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                  <DollarSign className="w-4 h-4 text-green-600" />
+                </div>
+                <h3 className="font-semibold text-sw-dark">{t('business.selfServe')}</h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {selfServeKPIs.map((kpi) => (
+                  <div key={kpi.id} className="inline-flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
+                    <span className="text-green-600">{kpi.icon}</span>
+                    <span className="text-sm font-medium text-green-800">{kpi.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Touch Pipeline */}
+            <div className="card p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <Phone className="w-4 h-4 text-orange-600" />
+                </div>
+                <h3 className="font-semibold text-sw-dark">{t('business.touchPipeline')}</h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {touchPipelineKPIs.map((kpi) => (
+                  <div key={kpi.id} className="inline-flex items-center gap-2 px-3 py-2 bg-orange-50 border border-orange-200 rounded-lg">
+                    <span className="text-orange-600">{kpi.icon}</span>
+                    <span className="text-sm font-medium text-orange-800">{kpi.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Main Metrics Grid */}
-        <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+        {/* ==================== SECTION B: Japan Overview ==================== */}
+        <div className="p-6 bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl border border-red-100">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center">
+              <Flag className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-sw-dark">{t('business.sectionB')}</h2>
+              <p className="text-sm text-sw-gray-500">{t('business.sectionBDesc')}</p>
+            </div>
+            <span className="ml-auto inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-700">
+              Q4 2025
+            </span>
+          </div>
+
+          {/* Main Metrics Grid */}
+          <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
           {metrics.map((metric) => (
             <div key={metric.id} className="card p-5">
               <div className="flex items-center justify-between mb-4">
@@ -116,8 +201,8 @@ export default function JapanOverview() {
           ))}
         </div>
 
-        {/* Funnel Analysis */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
+          {/* Funnel Analysis */}
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
           <div className="card p-6">
             <h2 className="text-lg font-semibold text-sw-dark mb-4">{t('japan.funnelAnalysis')}</h2>
             
@@ -214,28 +299,31 @@ export default function JapanOverview() {
           </div>
         </div>
 
-        {/* Summary Stats */}
-        <div className="card p-6">
-          <h2 className="text-lg font-semibold text-sw-dark mb-4">{t('japan.summary')}</h2>
-          <div className="grid md:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-blue-50 rounded-xl">
-              <p className="text-3xl font-bold text-blue-600">14K</p>
-              <p className="text-sm text-sw-gray-600">{t('japan.totalRegistrations')}</p>
-            </div>
-            <div className="text-center p-4 bg-emerald-50 rounded-xl">
-              <p className="text-3xl font-bold text-emerald-600">{trialRate}%</p>
-              <p className="text-sm text-sw-gray-600">{t('japan.trialConversion')}</p>
-            </div>
-            <div className="text-center p-4 bg-purple-50 rounded-xl">
-              <p className="text-3xl font-bold text-purple-600">{conversionRate}%</p>
-              <p className="text-sm text-sw-gray-600">{t('japan.purchaseConversion')}</p>
-            </div>
-            <div className="text-center p-4 bg-orange-50 rounded-xl">
-              <p className="text-3xl font-bold text-orange-600">50%</p>
-              <p className="text-sm text-sw-gray-600">{t('japan.retention')}</p>
+          {/* Summary Stats */}
+          <div className="card p-6">
+            <h2 className="text-lg font-semibold text-sw-dark mb-4">{t('japan.summary')}</h2>
+            <div className="grid md:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-blue-50 rounded-xl">
+                <p className="text-3xl font-bold text-blue-600">14K</p>
+                <p className="text-sm text-sw-gray-600">{t('japan.totalRegistrations')}</p>
+              </div>
+              <div className="text-center p-4 bg-emerald-50 rounded-xl">
+                <p className="text-3xl font-bold text-emerald-600">{trialRate}%</p>
+                <p className="text-sm text-sw-gray-600">{t('japan.trialConversion')}</p>
+              </div>
+              <div className="text-center p-4 bg-purple-50 rounded-xl">
+                <p className="text-3xl font-bold text-purple-600">{conversionRate}%</p>
+                <p className="text-sm text-sw-gray-600">{t('japan.purchaseConversion')}</p>
+              </div>
+              <div className="text-center p-4 bg-orange-50 rounded-xl">
+                <p className="text-3xl font-bold text-orange-600">50%</p>
+                <p className="text-sm text-sw-gray-600">{t('japan.retention')}</p>
+              </div>
             </div>
           </div>
         </div>
+        {/* End Section B */}
+
       </div>
     </div>
   )
