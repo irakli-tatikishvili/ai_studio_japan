@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, X, Sparkles, Zap, Building2, ArrowRight, Globe, BarChart3, Search, Smartphone, Coins, ShoppingCart, TrendingUp, Plus, Gift, DollarSign, Layers, MessageSquare, Brain, CreditCard } from 'lucide-react'
+import { Check, X, Sparkles, Zap, Building2, ArrowRight, Globe, BarChart3, Search, Smartphone, Coins, ShoppingCart, TrendingUp, Plus, Gift, DollarSign, Layers, MessageSquare, Brain, CreditCard, Info } from 'lucide-react'
 import { useUsage, PLANS, CREDIT_PACKAGE } from '../context/UsageContext'
 import { useLanguage } from '../context/LanguageContext'
 
@@ -37,10 +37,11 @@ const MODULES = {
     description: 'Mobile app downloads, usage, rankings',
     icon: Smartphone,
     color: 'purple',
-    accessPrice: 99,
-    queryPrice: 0.20,
-    creditsPerQuery: 2,      // 2x Web cost
+    accessPrice: -1,         // Contact Sales
+    queryPrice: -1,
+    creditsPerQuery: -1,
     hasFreeeTier: false,
+    contactSales: true,
     features: ['App Downloads', 'Usage Metrics', 'Store Rankings', 'Review Analytics'],
   },
   stocks: {
@@ -49,10 +50,11 @@ const MODULES = {
     description: 'Company financials, stock performance',
     icon: TrendingUp,
     color: 'amber',
-    accessPrice: 149,
-    queryPrice: 0.25,
-    creditsPerQuery: 2.5,    // 2.5x Web cost
+    accessPrice: -1,         // Contact Sales
+    queryPrice: -1,
+    creditsPerQuery: -1,
     hasFreeeTier: false,
+    contactSales: true,
     features: ['Financial Metrics', 'Stock Performance', 'Investor Insights', 'Market Trends'],
   },
   amazon: {
@@ -61,10 +63,11 @@ const MODULES = {
     description: 'E-commerce, product analytics, marketplace',
     icon: ShoppingCart,
     color: 'orange',
-    accessPrice: 129,
-    queryPrice: 0.22,
-    creditsPerQuery: 2.2,    // 2.2x Web cost
+    accessPrice: -1,         // Contact Sales
+    queryPrice: -1,
+    creditsPerQuery: -1,
     hasFreeeTier: false,
+    contactSales: true,
     features: ['Product Rankings', 'Sales Estimates', 'Category Analysis', 'Seller Insights'],
   },
 }
@@ -83,22 +86,27 @@ const PAY_PER_QUERY_CONFIG = {
     web: {
       regularPrice: 0.10,
       deepPrice: 0.50,
+      contactSales: false,
     },
     search: {
       regularPrice: 0.15,
       deepPrice: 0.75,
+      contactSales: false,
     },
     apps: {
-      regularPrice: 0.20,
-      deepPrice: 1.00,
+      regularPrice: -1,
+      deepPrice: -1,
+      contactSales: true,
     },
     stocks: {
-      regularPrice: 0.25,
-      deepPrice: 1.25,
+      regularPrice: -1,
+      deepPrice: -1,
+      contactSales: true,
     },
     amazon: {
-      regularPrice: 0.22,
-      deepPrice: 1.10,
+      regularPrice: -1,
+      deepPrice: -1,
+      contactSales: true,
     },
   },
   topUpOptions: [
@@ -109,12 +117,66 @@ const PAY_PER_QUERY_CONFIG = {
   ],
 }
 
+// Uniform Credits pricing configuration
+// Same credit cost for all modules, different recurring subscription per module
+const UNIFORM_CREDITS_CONFIG = {
+  creditCost: 0.10, // $0.10 per credit (same for all modules)
+  creditsPerQuery: 1, // 1 credit = 1 query (regardless of module)
+  trialCredits: 50, // 50 free trial credits
+  modules: {
+    web: {
+      // Access Only pricing
+      accessOnlyFee: 29,
+      // Credits Included pricing
+      creditsIncludedFee: 49,
+      creditsIncluded: 100,
+      description: 'Traffic, engagement, marketing channels',
+      contactSales: false,
+    },
+    search: {
+      accessOnlyFee: 59,
+      creditsIncludedFee: 99,
+      creditsIncluded: 200,
+      description: 'SEO, keywords, paid search campaigns',
+      contactSales: false,
+    },
+    apps: {
+      accessOnlyFee: -1,
+      creditsIncludedFee: -1,
+      creditsIncluded: 0,
+      description: 'Mobile app downloads, usage, rankings',
+      contactSales: true,
+    },
+    stocks: {
+      accessOnlyFee: -1,
+      creditsIncludedFee: -1,
+      creditsIncluded: 0,
+      description: 'Company financials, stock performance',
+      contactSales: true,
+    },
+    amazon: {
+      accessOnlyFee: -1,
+      creditsIncludedFee: -1,
+      creditsIncluded: 0,
+      description: 'E-commerce, product analytics, marketplace',
+      contactSales: true,
+    },
+  },
+  creditPackages: [
+    { credits: 100, price: 10, label: '100 credits' },
+    { credits: 500, price: 45, label: '500 credits', popular: true },
+    { credits: 1000, price: 80, label: '1,000 credits' },
+    { credits: 5000, price: 350, label: '5,000 credits' },
+  ],
+}
+
 export default function PricingPage() {
   const { subscription, upgradePlan } = useUsage()
   const { t } = useLanguage()
   const [billingCycle, setBillingCycle] = useState('monthly')
   const [pricingModel, setPricingModel] = useState('tiers') // 'tiers', 'credits', or 'freeTier'
   const [selectedModules, setSelectedModules] = useState([])
+  const [uniformCreditsMode, setUniformCreditsMode] = useState('accessOnly') // 'accessOnly' or 'creditsIncluded'
   
   // Simulated user trial state for Credits Pool option
   const [userTrialState, setUserTrialState] = useState({
@@ -171,53 +233,99 @@ export default function PricingPage() {
           <p className="text-lg text-sw-gray-600 max-w-2xl mx-auto">{t('pricing.subtitle')}</p>
         </div>
 
-        {/* Pricing Model Toggle - 4 Options */}
+        {/* Pricing Model Toggle - 5 Options */}
         <div className="flex items-center justify-center gap-2 mb-8">
           <div className="inline-flex bg-sw-gray-100 rounded-xl p-1 flex-wrap justify-center gap-1">
-            <button
-              onClick={() => setPricingModel('tiers')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                pricingModel === 'tiers'
-                  ? 'bg-white text-sw-dark shadow-sm'
-                  : 'text-sw-gray-600 hover:text-sw-dark'
-              }`}
-            >
-              <Sparkles className="w-4 h-4" />
-              {t('pricing.tierBased') || 'Tier-Based'}
-            </button>
-            <button
-              onClick={() => setPricingModel('credits')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                pricingModel === 'credits'
-                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-sm'
-                  : 'text-sw-gray-600 hover:text-sw-dark'
-              }`}
-            >
-              <Gift className="w-4 h-4" />
-              {t('pricing.moduleCredits') || 'Module + Credits'}
-            </button>
-            <button
-              onClick={() => setPricingModel('freeTier')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                pricingModel === 'freeTier'
-                  ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-sm'
-                  : 'text-sw-gray-600 hover:text-sw-dark'
-              }`}
-            >
-              <Globe className="w-4 h-4" />
-              {t('pricing.moduleFreeTier') || 'Module + Free Tier'}
-            </button>
-            <button
-              onClick={() => setPricingModel('payPerQuery')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                pricingModel === 'payPerQuery'
-                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-sm'
-                  : 'text-sw-gray-600 hover:text-sw-dark'
-              }`}
-            >
-              <DollarSign className="w-4 h-4" />
-              {t('pricing.payPerQuery') || 'Pay-Per-Query'}
-            </button>
+            <div className="relative group">
+              <button
+                onClick={() => setPricingModel('tiers')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                  pricingModel === 'tiers'
+                    ? 'bg-white text-sw-dark shadow-sm'
+                    : 'text-sw-gray-600 hover:text-sw-dark'
+                }`}
+              >
+                <Sparkles className="w-4 h-4" />
+                {t('pricing.tierBased') || 'Tier-Based'}
+                <Info className="w-3 h-3 opacity-50" />
+              </button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-sw-dark text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all w-48 text-center z-50 shadow-lg">
+                {t('pricing.tierBasedInfo') || 'Traditional packages: Free, Starter, Pro, Enterprise with fixed features & limits'}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-sw-dark"></div>
+              </div>
+            </div>
+            <div className="relative group">
+              <button
+                onClick={() => setPricingModel('uniformCredits')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                  pricingModel === 'uniformCredits'
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm'
+                    : 'text-sw-gray-600 hover:text-sw-dark'
+                }`}
+              >
+                <Coins className="w-4 h-4" />
+                {t('pricing.uniformCredits') || 'Uniform Credits'}
+                <Info className="w-3 h-3 opacity-50" />
+              </button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-sw-dark text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all w-48 text-center z-50 shadow-lg">
+                {t('pricing.uniformCreditsInfo') || 'Same credit cost for all modules. Pay different subscription fees per data module.'}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-sw-dark"></div>
+              </div>
+            </div>
+            <div className="relative group">
+              <button
+                onClick={() => setPricingModel('payPerQuery')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                  pricingModel === 'payPerQuery'
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-sm'
+                    : 'text-sw-gray-600 hover:text-sw-dark'
+                }`}
+              >
+                <DollarSign className="w-4 h-4" />
+                {t('pricing.payPerQuery') || 'Pay-Per-Query'}
+                <Info className="w-3 h-3 opacity-50" />
+              </button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-sw-dark text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all w-48 text-center z-50 shadow-lg">
+                {t('pricing.payPerQueryInfo') || 'No subscription. Add balance and pay only per query. Different prices per module.'}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-sw-dark"></div>
+              </div>
+            </div>
+            <div className="relative group">
+              <button
+                onClick={() => setPricingModel('credits')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                  pricingModel === 'credits'
+                    ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-sm'
+                    : 'text-sw-gray-600 hover:text-sw-dark'
+                }`}
+              >
+                <Gift className="w-4 h-4" />
+                {t('pricing.moduleCredits') || 'Module + Credits'}
+                <Info className="w-3 h-3 opacity-50" />
+              </button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-sw-dark text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all w-48 text-center z-50 shadow-lg">
+                {t('pricing.moduleCreditsInfo') || 'Free trial credits pool. Subscribe to modules with different credit costs per query.'}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-sw-dark"></div>
+              </div>
+            </div>
+            <div className="relative group">
+              <button
+                onClick={() => setPricingModel('freeTier')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                  pricingModel === 'freeTier'
+                    ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-sm'
+                    : 'text-sw-gray-600 hover:text-sw-dark'
+                }`}
+              >
+                <Globe className="w-4 h-4" />
+                {t('pricing.moduleFreeTier') || 'Module + Free Tier'}
+                <Info className="w-3 h-3 opacity-50" />
+              </button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-sw-dark text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all w-48 text-center z-50 shadow-lg">
+                {t('pricing.moduleFreeTierInfo') || 'Free Web module with limited queries. Pay to unlock other modules or unlimited access.'}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-sw-dark"></div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -804,11 +912,19 @@ export default function PricingPage() {
                   {Object.values(MODULES).map((module) => {
                     const Icon = module.icon
                     const moduleConfig = PAY_PER_QUERY_CONFIG.modules[module.id]
-                    const regularQueriesWithBalance = Math.floor(userBalance.balance / moduleConfig.regularPrice)
-                    const deepQueriesWithBalance = Math.floor(userBalance.balance / moduleConfig.deepPrice)
+                    const isContactSales = moduleConfig.contactSales
+                    const regularQueriesWithBalance = !isContactSales ? Math.floor(userBalance.balance / moduleConfig.regularPrice) : 0
+                    const deepQueriesWithBalance = !isContactSales ? Math.floor(userBalance.balance / moduleConfig.deepPrice) : 0
                     
                     return (
-                      <div key={module.id} className="card p-5 hover:shadow-md transition-shadow">
+                      <div key={module.id} className={`card p-5 transition-shadow relative ${isContactSales ? 'opacity-90' : 'hover:shadow-md'}`}>
+                        {isContactSales && (
+                          <div className="absolute -top-2 -right-2">
+                            <span className="px-2 py-0.5 bg-purple-600 text-white text-xs font-bold rounded-full">
+                              ENTERPRISE
+                            </span>
+                          </div>
+                        )}
                         <div className="flex items-center gap-3 mb-4">
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                             module.color === 'blue' ? 'bg-blue-100' :
@@ -831,31 +947,42 @@ export default function PricingPage() {
                           </div>
                         </div>
 
-                        <div className="space-y-3">
-                          {/* Regular Query Price */}
-                          <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                            <div className="flex items-center gap-2">
-                              <MessageSquare className="w-4 h-4 text-green-600" />
-                              <span className="text-sm font-medium text-green-800">{t('pricing.regular') || 'Regular'}</span>
-                            </div>
-                            <div className="text-right">
-                              <span className="font-bold text-green-600">${moduleConfig.regularPrice.toFixed(2)}</span>
-                              <span className="text-xs text-green-600 block">~{regularQueriesWithBalance} with ${userBalance.balance.toFixed(2)}</span>
-                            </div>
+                        {isContactSales ? (
+                          <div className="space-y-3">
+                            <p className="text-sm text-sw-gray-600 text-center py-2">
+                              {t('pricing.enterpriseModuleDesc') || 'Enterprise-grade data access with custom pricing'}
+                            </p>
+                            <button className="w-full py-3 px-4 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-colors">
+                              {t('common.contactSales') || 'Contact Sales'}
+                            </button>
                           </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {/* Regular Query Price */}
+                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                              <div className="flex items-center gap-2">
+                                <MessageSquare className="w-4 h-4 text-green-600" />
+                                <span className="text-sm font-medium text-green-800">{t('pricing.regular') || 'Regular'}</span>
+                              </div>
+                              <div className="text-right">
+                                <span className="font-bold text-green-600">${moduleConfig.regularPrice.toFixed(2)}</span>
+                                <span className="text-xs text-green-600 block">~{regularQueriesWithBalance} with ${userBalance.balance.toFixed(2)}</span>
+                              </div>
+                            </div>
 
-                          {/* Deep Research Price */}
-                          <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                            <div className="flex items-center gap-2">
-                              <Brain className="w-4 h-4 text-purple-600" />
-                              <span className="text-sm font-medium text-purple-800">{t('pricing.deep') || 'Deep Research'}</span>
-                            </div>
-                            <div className="text-right">
-                              <span className="font-bold text-purple-600">${moduleConfig.deepPrice.toFixed(2)}</span>
-                              <span className="text-xs text-purple-600 block">~{deepQueriesWithBalance} with ${userBalance.balance.toFixed(2)}</span>
+                            {/* Deep Research Price */}
+                            <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                              <div className="flex items-center gap-2">
+                                <Brain className="w-4 h-4 text-purple-600" />
+                                <span className="text-sm font-medium text-purple-800">{t('pricing.deep') || 'Deep Research'}</span>
+                              </div>
+                              <div className="text-right">
+                                <span className="font-bold text-purple-600">${moduleConfig.deepPrice.toFixed(2)}</span>
+                                <span className="text-xs text-purple-600 block">~{deepQueriesWithBalance} with ${userBalance.balance.toFixed(2)}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     )
                   })}
@@ -943,6 +1070,7 @@ export default function PricingPage() {
                       {Object.values(MODULES).map(module => {
                         const Icon = module.icon
                         const config = PAY_PER_QUERY_CONFIG.modules[module.id]
+                        const isContactSales = config.contactSales
                         return (
                           <tr key={module.id} className="hover:bg-sw-gray-50">
                             <td className="px-4 py-3">
@@ -950,20 +1078,37 @@ export default function PricingPage() {
                                 <Icon className="w-5 h-5 text-sw-gray-500" />
                                 <div>
                                   <span className="font-medium text-sw-dark">{module.name}</span>
+                                  {isContactSales && (
+                                    <span className="ml-2 px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded">Enterprise</span>
+                                  )}
                                   <span className="text-xs text-sw-gray-500 block">{module.description}</span>
                                 </div>
                               </div>
                             </td>
                             <td className="px-4 py-3 text-center bg-green-50/50">
-                              <span className="font-bold text-green-600">${config.regularPrice.toFixed(2)}</span>
+                              {isContactSales ? (
+                                <span className="text-sm text-purple-600 font-medium">Contact Sales</span>
+                              ) : (
+                                <span className="font-bold text-green-600">${config.regularPrice.toFixed(2)}</span>
+                              )}
                             </td>
                             <td className="px-4 py-3 text-center bg-purple-50/50">
-                              <span className="font-bold text-purple-600">${config.deepPrice.toFixed(2)}</span>
+                              {isContactSales ? (
+                                <span className="text-sm text-purple-600 font-medium">Contact Sales</span>
+                              ) : (
+                                <span className="font-bold text-purple-600">${config.deepPrice.toFixed(2)}</span>
+                              )}
                             </td>
                             <td className="px-4 py-3 text-center">
-                              <span className="text-sm text-green-600">{Math.floor(5 / config.regularPrice)} reg</span>
-                              <span className="text-sw-gray-400 mx-1">or</span>
-                              <span className="text-sm text-purple-600">{Math.floor(5 / config.deepPrice)} deep</span>
+                              {isContactSales ? (
+                                <span className="text-sm text-purple-600 font-medium">Custom</span>
+                              ) : (
+                                <>
+                                  <span className="text-sm text-green-600">{Math.floor(5 / config.regularPrice)} reg</span>
+                                  <span className="text-sw-gray-400 mx-1">or</span>
+                                  <span className="text-sm text-purple-600">{Math.floor(5 / config.deepPrice)} deep</span>
+                                </>
+                              )}
                             </td>
                           </tr>
                         )
@@ -974,6 +1119,312 @@ export default function PricingPage() {
                 <p className="text-xs text-sw-gray-500 text-center mt-3">
                   {t('pricing.noSubscriptionNote') || 'No subscription required. Pay only for what you use. Balance never expires.'}
                 </p>
+              </div>
+            </div>
+          </>
+        )}
+
+        {pricingModel === 'uniformCredits' && (
+          <>
+            {/* Uniform Credits Pricing */}
+            <div className="mb-8">
+              {/* Explanation Banner */}
+              <div className="card p-6 bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200 mb-8">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Coins className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-grow">
+                    <h3 className="font-bold text-sw-dark text-lg mb-2">
+                      {t('pricing.uniformCreditsTitle') || 'Simple Credit System'}
+                    </h3>
+                    <p className="text-sw-gray-600 mb-3">
+                      {t('pricing.uniformCreditsDesc') || 'All queries cost the same credits regardless of module. Pay different subscription fees for each data module you want access to.'}
+                    </p>
+                    <div className="flex flex-wrap gap-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
+                          <Coins className="w-4 h-4 text-amber-600" />
+                        </div>
+                        <div>
+                          <span className="font-semibold text-amber-700">1 credit = 1 query</span>
+                          <span className="text-sw-gray-500 ml-1">(any module)</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                          <Gift className="w-4 h-4 text-green-600" />
+                        </div>
+                        <span className="font-semibold text-green-700">{UNIFORM_CREDITS_CONFIG.trialCredits} free trial credits</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Credits Mode Toggle */}
+              <div className="flex items-center justify-center mb-8">
+                <div className="inline-flex bg-sw-gray-100 rounded-xl p-1">
+                  <button
+                    onClick={() => setUniformCreditsMode('accessOnly')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                      uniformCreditsMode === 'accessOnly'
+                        ? 'bg-white text-sw-dark shadow-sm'
+                        : 'text-sw-gray-600 hover:text-sw-dark'
+                    }`}
+                  >
+                    <Layers className="w-4 h-4" />
+                    {t('pricing.accessOnly') || 'Access Only'}
+                  </button>
+                  <button
+                    onClick={() => setUniformCreditsMode('creditsIncluded')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                      uniformCreditsMode === 'creditsIncluded'
+                        ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm'
+                        : 'text-sw-gray-600 hover:text-sw-dark'
+                    }`}
+                  >
+                    <Gift className="w-4 h-4" />
+                    {t('pricing.creditsIncluded') || 'Credits Included'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Mode Description */}
+              <div className={`card p-4 mb-6 ${uniformCreditsMode === 'accessOnly' ? 'bg-sw-gray-50 border-sw-gray-200' : 'bg-amber-50 border-amber-200'}`}>
+                <div className="flex items-center gap-3">
+                  {uniformCreditsMode === 'accessOnly' ? (
+                    <>
+                      <Layers className="w-5 h-5 text-sw-gray-600" />
+                      <div>
+                        <p className="font-medium text-sw-dark">{t('pricing.accessOnlyTitle') || 'Access Only'}</p>
+                        <p className="text-sm text-sw-gray-500">{t('pricing.accessOnlyDesc') || 'Pay a lower monthly fee for module access. Buy credit packages separately as needed.'}</p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Gift className="w-5 h-5 text-amber-600" />
+                      <div>
+                        <p className="font-medium text-sw-dark">{t('pricing.creditsIncludedTitle') || 'Credits Included'}</p>
+                        <p className="text-sm text-sw-gray-500">{t('pricing.creditsIncludedDesc') || 'Higher monthly fee but includes credits each month. Best for regular users.'}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Module Subscription Cards */}
+              <h3 className="text-lg font-semibold text-sw-dark mb-4 flex items-center gap-2">
+                <Layers className="w-5 h-5 text-amber-600" />
+                {t('pricing.selectDataModules') || 'Select Data Modules'}
+              </h3>
+              <p className="text-sm text-sw-gray-500 mb-4">
+                {uniformCreditsMode === 'accessOnly' 
+                  ? (t('pricing.selectDataModulesDescAccess') || 'Choose modules for access. Credits purchased separately.')
+                  : (t('pricing.selectDataModulesDescCredits') || 'Choose modules. Each includes monthly credits.')}
+              </p>
+
+              <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+                {Object.values(MODULES).map((module) => {
+                  const isSelected = selectedModules.includes(module.id)
+                  const Icon = module.icon
+                  const config = UNIFORM_CREDITS_CONFIG.modules[module.id]
+                  const isContactSales = config.contactSales
+                  const baseFee = uniformCreditsMode === 'accessOnly' ? config.accessOnlyFee : config.creditsIncludedFee
+                  const displayPrice = !isContactSales && billingCycle === 'yearly' ? Math.round(baseFee * 0.83) : baseFee
+                  
+                  const colorClasses = {
+                    blue: { bg: 'bg-blue-50', icon: 'text-blue-600', border: 'border-blue-500', ring: 'ring-blue-500' },
+                    green: { bg: 'bg-green-50', icon: 'text-green-600', border: 'border-green-500', ring: 'ring-green-500' },
+                    purple: { bg: 'bg-purple-50', icon: 'text-purple-600', border: 'border-purple-500', ring: 'ring-purple-500' },
+                    amber: { bg: 'bg-amber-50', icon: 'text-amber-600', border: 'border-amber-500', ring: 'ring-amber-500' },
+                    orange: { bg: 'bg-orange-50', icon: 'text-orange-600', border: 'border-orange-500', ring: 'ring-orange-500' },
+                  }
+                  const colors = colorClasses[module.color]
+
+                  return (
+                    <div 
+                      key={module.id}
+                      onClick={() => !isContactSales && toggleModule(module.id)}
+                      className={`card p-4 transition-all relative ${
+                        isContactSales 
+                          ? 'cursor-default opacity-90' 
+                          : isSelected 
+                            ? `ring-2 ${colors.ring} ${colors.bg} cursor-pointer` 
+                            : 'hover:border-sw-gray-300 cursor-pointer'
+                      }`}
+                    >
+                      {isContactSales && (
+                        <div className="absolute -top-2 -right-2">
+                          <span className="px-2 py-0.5 bg-purple-600 text-white text-xs font-bold rounded-full">
+                            ENTERPRISE
+                          </span>
+                        </div>
+                      )}
+                      {!isContactSales && uniformCreditsMode === 'creditsIncluded' && (
+                        <div className="absolute -top-2 -right-2">
+                          <span className="px-2 py-0.5 bg-amber-500 text-white text-xs font-bold rounded-full">
+                            +{config.creditsIncluded} credits
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex items-start justify-between mb-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colors.bg}`}>
+                          <Icon className={`w-5 h-5 ${colors.icon}`} />
+                        </div>
+                        {!isContactSales && (
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                            isSelected ? `${colors.border} ${colors.bg}` : 'border-sw-gray-300'
+                          }`}>
+                            {isSelected && <Check className={`w-3 h-3 ${colors.icon}`} />}
+                          </div>
+                        )}
+                      </div>
+                      <h4 className="font-semibold text-sw-dark text-sm mb-1">{module.name}</h4>
+                      <p className="text-xs text-sw-gray-500 mb-3">{config.description}</p>
+                      {isContactSales ? (
+                        <button className="w-full py-2 px-3 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-200 transition-colors">
+                          {t('common.contactSales') || 'Contact Sales'}
+                        </button>
+                      ) : (
+                        <div>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-xl font-bold text-sw-dark">${displayPrice}</span>
+                            <span className="text-xs text-sw-gray-500">/mo</span>
+                          </div>
+                          {uniformCreditsMode === 'creditsIncluded' && (
+                            <p className="text-xs text-amber-600 mt-1">
+                              Includes {config.creditsIncluded} credits/mo
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Credit Packages */}
+              <h3 className="text-lg font-semibold text-sw-dark mb-4 flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-amber-600" />
+                {t('pricing.creditPackages') || 'Credit Packages'}
+              </h3>
+              <p className="text-sm text-sw-gray-500 mb-4">
+                {t('pricing.creditPackagesDesc') || 'Buy credits to use across all your subscribed modules. 1 credit = 1 query on any module.'}
+              </p>
+
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                {UNIFORM_CREDITS_CONFIG.creditPackages.map((pkg) => (
+                  <div 
+                    key={pkg.credits}
+                    className={`card p-4 relative ${pkg.popular ? 'ring-2 ring-amber-500 border-amber-500' : ''}`}
+                  >
+                    {pkg.popular && (
+                      <span className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-amber-500 text-white text-xs font-bold rounded-full">
+                        POPULAR
+                      </span>
+                    )}
+                    <div className="flex items-center gap-2 mb-3">
+                      <Coins className="w-5 h-5 text-amber-500" />
+                      <span className="font-bold text-sw-dark">{pkg.label}</span>
+                    </div>
+                    <div className="flex items-baseline gap-1 mb-2">
+                      <span className="text-2xl font-bold text-sw-dark">${pkg.price}</span>
+                    </div>
+                    <p className="text-xs text-sw-gray-500">
+                      ${(pkg.price / pkg.credits).toFixed(2)} per credit
+                    </p>
+                    <button className="w-full mt-3 py-2 px-3 bg-amber-100 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-200 transition-colors">
+                      {t('common.buy') || 'Buy'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Summary Card */}
+              <div className="card p-6 bg-gradient-to-r from-amber-500 to-orange-500 text-white">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                  <div>
+                    <h3 className="font-bold text-lg mb-1">
+                      {selectedModules.length > 0 
+                        ? t('pricing.yourSelection') || 'Your Selection'
+                        : t('pricing.noModulesSelected') || 'No modules selected'}
+                    </h3>
+                    {selectedModules.length > 0 ? (
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {selectedModules.map(id => {
+                          const module = MODULES[id]
+                          const config = UNIFORM_CREDITS_CONFIG.modules[id]
+                          const Icon = module.icon
+                          return (
+                            <span key={id} className="inline-flex items-center gap-1 px-2 py-1 bg-white/20 rounded-lg text-sm">
+                              <Icon className="w-3 h-3" />
+                              {module.name}
+                              {uniformCreditsMode === 'creditsIncluded' && (
+                                <span className="text-xs opacity-80">({config.creditsIncluded})</span>
+                              )}
+                            </span>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-white/80 text-sm">{t('pricing.selectModulesPrompt') || 'Select modules above to build your plan'}</p>
+                    )}
+                    {selectedModules.length > 0 && uniformCreditsMode === 'creditsIncluded' && (
+                      <p className="text-white/90 text-sm mt-1 flex items-center gap-1">
+                        <Coins className="w-4 h-4" />
+                        {selectedModules.reduce((sum, id) => sum + UNIFORM_CREDITS_CONFIG.modules[id].creditsIncluded, 0)} credits/month included
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-white/80 text-sm mb-1">{t('pricing.monthlySubscription') || 'Monthly Subscription'}</p>
+                    <p className="text-3xl font-bold">
+                      ${selectedModules.reduce((sum, id) => {
+                        const config = UNIFORM_CREDITS_CONFIG.modules[id]
+                        const fee = uniformCreditsMode === 'accessOnly' ? config.accessOnlyFee : config.creditsIncludedFee
+                        return sum + (billingCycle === 'yearly' ? Math.round(fee * 0.83) : fee)
+                      }, 0)}
+                      <span className="text-lg font-normal">/mo</span>
+                    </p>
+                    <p className="text-white/80 text-xs">
+                      {uniformCreditsMode === 'accessOnly' 
+                        ? '+ credits as needed' 
+                        : `includes ${selectedModules.reduce((sum, id) => sum + UNIFORM_CREDITS_CONFIG.modules[id].creditsIncluded, 0)} credits`}
+                    </p>
+                  </div>
+                </div>
+                {selectedModules.length > 0 && (
+                  <button className="w-full mt-4 py-3 bg-white text-amber-600 rounded-xl font-semibold hover:bg-amber-50 transition-colors">
+                    {t('pricing.startTrial') || 'Start with 50 Free Credits'}
+                  </button>
+                )}
+              </div>
+
+              {/* Comparison Note */}
+              <div className="mt-6 p-4 bg-sw-gray-50 rounded-xl">
+                <h4 className="font-semibold text-sw-dark mb-2 flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-sw-gray-600" />
+                  {t('pricing.howItDiffers') || 'How this model works'}
+                </h4>
+                <div className="grid md:grid-cols-2 gap-4 text-sm text-sw-gray-600">
+                  <div className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span><strong>Same credit cost:</strong> 1 credit = 1 query on any module</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span><strong>Different access fees:</strong> Each module has its own monthly subscription</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span><strong>Flexible:</strong> Add or remove modules anytime</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span><strong>Credits never expire:</strong> Use them whenever you need</span>
+                  </div>
+                </div>
               </div>
             </div>
           </>
