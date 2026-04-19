@@ -1,10 +1,12 @@
-import { useState } from 'react'
-import { Check, X, Sparkles, Zap, Building2, ArrowRight, Globe, BarChart3, Search, Smartphone, Coins, ShoppingCart, TrendingUp, Plus, Gift, DollarSign, Layers, MessageSquare, Brain, CreditCard, Info } from 'lucide-react'
-import { useUsage, PLANS, CREDIT_PACKAGE } from '../context/UsageContext'
+﻿import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { Check, ArrowRight, Globe, Search, Smartphone, Coins, ShoppingCart, TrendingUp, Plus, Gift, DollarSign, Layers, MessageSquare, Brain, CreditCard } from 'lucide-react'
+import { useUsage, PLANS } from '../context/UsageContext'
 import { useLanguage } from '../context/LanguageContext'
+import { TIER_PLUS_FEATURE_IDS } from '../constants/pricingFeatureMatrix'
 
 // Module-based pricing configuration
-// Credit costs are normalized: 1 credit ≈ $0.10 (Web as baseline)
+// Credit costs are normalized: 1 credit ~ $0.10 (Web as baseline)
 const MODULES = {
   web: {
     id: 'web',
@@ -170,11 +172,16 @@ const UNIFORM_CREDITS_CONFIG = {
   ],
 }
 
+const VALID_PRICING_MODELS = ['tiers', 'uniformCredits', 'payPerQuery', 'credits', 'freeTier']
+
 export default function PricingPage() {
   const { subscription, upgradePlan } = useUsage()
   const { t } = useLanguage()
+  const [searchParams] = useSearchParams()
+  const modelParam = searchParams.get('model')
+  const pricingModel = VALID_PRICING_MODELS.includes(modelParam) ? modelParam : 'tiers'
+
   const [billingCycle, setBillingCycle] = useState('monthly')
-  const [pricingModel, setPricingModel] = useState('tiers') // 'tiers', 'credits', or 'freeTier'
   const [selectedModules, setSelectedModules] = useState([])
   const [uniformCreditsMode, setUniformCreditsMode] = useState('accessOnly') // 'accessOnly' or 'creditsIncluded'
   
@@ -194,7 +201,7 @@ export default function PricingPage() {
     queriesUsed: { regular: 0, deep: 0 },
   })
 
-  const planOrder = ['free', 'starter', 'pro', 'enterprise']
+  const planOrder = ['explorer', 'strategist', 'leader', 'custom']
 
   const toggleModule = (moduleId) => {
     setSelectedModules(prev => 
@@ -233,102 +240,6 @@ export default function PricingPage() {
           <p className="text-lg text-sw-gray-600 max-w-2xl mx-auto">{t('pricing.subtitle')}</p>
         </div>
 
-        {/* Pricing Model Toggle - 5 Options */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="inline-flex bg-sw-gray-100 rounded-xl p-1 flex-wrap justify-center gap-1">
-            <div className="relative group">
-              <button
-                onClick={() => setPricingModel('tiers')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                  pricingModel === 'tiers'
-                    ? 'bg-white text-sw-dark shadow-sm'
-                    : 'text-sw-gray-600 hover:text-sw-dark'
-                }`}
-              >
-                <Sparkles className="w-4 h-4" />
-                {t('pricing.tierBased') || 'Tier-Based'}
-                <Info className="w-3 h-3 opacity-50" />
-              </button>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-sw-dark text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all w-48 text-center z-50 shadow-lg">
-                {t('pricing.tierBasedInfo') || 'Traditional packages: Free, Starter, Pro, Enterprise with fixed features & limits'}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-sw-dark"></div>
-              </div>
-            </div>
-            <div className="relative group">
-              <button
-                onClick={() => setPricingModel('uniformCredits')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                  pricingModel === 'uniformCredits'
-                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm'
-                    : 'text-sw-gray-600 hover:text-sw-dark'
-                }`}
-              >
-                <Coins className="w-4 h-4" />
-                {t('pricing.uniformCredits') || 'Uniform Credits'}
-                <Info className="w-3 h-3 opacity-50" />
-              </button>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-sw-dark text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all w-48 text-center z-50 shadow-lg">
-                {t('pricing.uniformCreditsInfo') || 'Same credit cost for all modules. Pay different subscription fees per data module.'}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-sw-dark"></div>
-              </div>
-            </div>
-            <div className="relative group">
-              <button
-                onClick={() => setPricingModel('payPerQuery')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                  pricingModel === 'payPerQuery'
-                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-sm'
-                    : 'text-sw-gray-600 hover:text-sw-dark'
-                }`}
-              >
-                <DollarSign className="w-4 h-4" />
-                {t('pricing.payPerQuery') || 'Pay-Per-Query'}
-                <Info className="w-3 h-3 opacity-50" />
-              </button>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-sw-dark text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all w-48 text-center z-50 shadow-lg">
-                {t('pricing.payPerQueryInfo') || 'No subscription. Add balance and pay only per query. Different prices per module.'}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-sw-dark"></div>
-              </div>
-            </div>
-            <div className="relative group">
-              <button
-                onClick={() => setPricingModel('credits')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                  pricingModel === 'credits'
-                    ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-sm'
-                    : 'text-sw-gray-600 hover:text-sw-dark'
-                }`}
-              >
-                <Gift className="w-4 h-4" />
-                {t('pricing.moduleCredits') || 'Module + Credits'}
-                <Info className="w-3 h-3 opacity-50" />
-              </button>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-sw-dark text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all w-48 text-center z-50 shadow-lg">
-                {t('pricing.moduleCreditsInfo') || 'Free trial credits pool. Subscribe to modules with different credit costs per query.'}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-sw-dark"></div>
-              </div>
-            </div>
-            <div className="relative group">
-              <button
-                onClick={() => setPricingModel('freeTier')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                  pricingModel === 'freeTier'
-                    ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-sm'
-                    : 'text-sw-gray-600 hover:text-sw-dark'
-                }`}
-              >
-                <Globe className="w-4 h-4" />
-                {t('pricing.moduleFreeTier') || 'Module + Free Tier'}
-                <Info className="w-3 h-3 opacity-50" />
-              </button>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-sw-dark text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all w-48 text-center z-50 shadow-lg">
-                {t('pricing.moduleFreeTierInfo') || 'Free Web module with limited queries. Pay to unlock other modules or unlimited access.'}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-sw-dark"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Billing Toggle */}
         <div className="flex items-center justify-center gap-4 mb-8">
           <span className={`text-sm font-medium ${billingCycle === 'monthly' ? 'text-sw-dark' : 'text-sw-gray-400'}`}>
@@ -359,15 +270,16 @@ export default function PricingPage() {
         {pricingModel === 'tiers' && (
           <>
             {/* Tier-Based Pricing Cards */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+            <div className="mb-16 grid items-stretch gap-6 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4 xl:gap-6">
               {planOrder.map((planId) => (
-                <PricingCard 
-                  key={planId} 
-                  planId={planId} 
-                  billingCycle={billingCycle}
-                  isCurrentPlan={subscription.plan === planId}
-                  onUpgrade={upgradePlan}
-                />
+                <div key={planId} className="flex h-full min-h-0 w-full flex-col self-stretch">
+                  <PricingCard
+                    planId={planId}
+                    billingCycle={billingCycle}
+                    isCurrentPlan={subscription.plan === planId}
+                    onUpgrade={upgradePlan}
+                  />
+                </div>
               ))}
             </div>
           </>
@@ -494,7 +406,7 @@ export default function PricingPage() {
                     <div className="text-center py-4">
                       <p className="text-sw-gray-500 mb-2">{t('pricing.noModulesSelected') || 'Select modules above to build your plan'}</p>
                       <p className="text-sm text-purple-600">
-                        {t('pricing.trialHintNew') || '💡 With 50 credits, you can make ~50 Web queries or ~20 Amazon queries!'}
+                        {t('pricing.trialHintNew') || '≡ƒÆí With 50 credits, you can make ~50 Web queries or ~20 Amazon queries!'}
                       </p>
                     </div>
                   ) : (
@@ -512,7 +424,7 @@ export default function PricingPage() {
                                 <div>
                                   <span className="font-medium text-sw-dark">{module.name}</span>
                                   <span className="text-xs text-purple-600 block">
-                                    {module.creditsPerQuery} {module.creditsPerQuery === 1 ? 'credit' : 'credits'}/query • ~{possibleQueries} queries left
+                                    {module.creditsPerQuery} {module.creditsPerQuery === 1 ? 'credit' : 'credits'}/query ΓÇó ~{possibleQueries} queries left
                                   </span>
                                 </div>
                               </div>
@@ -620,7 +532,7 @@ export default function PricingPage() {
                 </table>
               </div>
               <p className="text-xs text-sw-gray-500 text-center mt-3">
-                {t('pricing.creditValueNote') || '1 credit ≈ $0.10 value. Web is the baseline at 1 credit/query.'}
+                {t('pricing.creditValueNote') || '1 credit Γëê $0.10 value. Web is the baseline at 1 credit/query.'}
               </p>
             </div>
           </>
@@ -694,7 +606,7 @@ export default function PricingPage() {
                     <div className="text-center py-4">
                       <p className="text-sw-gray-500 mb-2">{t('pricing.noModulesSelected') || 'Select modules above to build your plan'}</p>
                       <p className="text-sm text-blue-600">
-                        {t('pricing.freeTierHint') || '💡 Start with free Web Intelligence - 20 queries/month!'}
+                        {t('pricing.freeTierHint') || '≡ƒÆí Start with free Web Intelligence - 20 queries/month!'}
                       </p>
                     </div>
                   ) : (
@@ -1567,218 +1479,289 @@ function ModuleCard({ module, isSelected, onToggle, billingCycle, isOnTrial, tri
   )
 }
 
-function DataTypeRow({ icon, label, included }) {
-  return (
-    <div className="flex items-center justify-between text-xs">
-      <div className="flex items-center gap-1.5">
-        <span className={included ? 'text-sw-gray-500' : 'text-sw-gray-300'}>{icon}</span>
-        <span className={included ? 'text-sw-gray-600' : 'text-sw-gray-400'}>{label}</span>
-      </div>
-      {included ? (
-        <Check className="w-3 h-3 text-green-500" />
-      ) : (
-        <X className="w-3 h-3 text-sw-gray-300" />
-      )}
-    </div>
-  )
+function packageUsersDisplay(plan, t) {
+  return plan.seatUsers === 'custom' ? t('pricing.packageUsersCustom') : t('pricing.packageUsersOne')
+}
+
+function packageDashboardsDisplay(plan, t) {
+  const n = plan.limits.dashboards
+  if (n === 0) return t('pricing.packageDashboardsNone')
+  if (n < 0) return t('pricing.packageDashboardsUnlimited')
+  return t('pricing.packageDashboardsUpTo', { count: n })
+}
+
+function packageDeepResearchDisplay(plan, t) {
+  return plan.limits.deepResearch ? t('pricing.packageDeepResearchYes') : t('pricing.packageDeepResearchNo')
+}
+
+const PRICING_TIER_UI = {
+  explorer: {
+    inheritKey: null,
+    listIntroKey: 'pricing.whatsIncluded',
+    cardClass:
+      'border border-slate-200/90 bg-gradient-to-b from-slate-50/95 via-white to-white shadow-sm hover:shadow-md',
+  },
+  strategist: {
+    inheritKey: 'pricing.everythingInExplorerPlus',
+    cardClass:
+      'border border-emerald-200/80 bg-gradient-to-b from-emerald-50/90 via-white to-white shadow-lg ring-2 ring-emerald-500/25',
+  },
+  leader: {
+    inheritKey: 'pricing.everythingInStrategistPlus',
+    cardClass:
+      'border border-sky-200/80 bg-gradient-to-b from-sky-50/80 via-white to-white shadow-md hover:shadow-lg',
+  },
+  custom: {
+    inheritKey: 'pricing.everythingInLeaderPlus',
+    cardClass:
+      'border border-violet-200/90 bg-gradient-to-b from-violet-50/90 via-white to-white shadow-md hover:shadow-lg',
+    /** Full translation keys — not matrix ids */
+    plusKeys: ['features.tierCustom1', 'features.tierCustom2', 'features.tierCustom3'],
+  },
 }
 
 function PricingCard({ planId, billingCycle, isCurrentPlan, onUpgrade }) {
   const { t } = useLanguage()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [selectedCredits, setSelectedCredits] = useState(null)
-  
+
   const plan = PLANS[planId]
-  
-  const planIcons = {
-    free: <Sparkles className="w-6 h-6" />,
-    starter: <Zap className="w-6 h-6" />,
-    pro: <Zap className="w-6 h-6" />,
-    enterprise: <Building2 className="w-6 h-6" />,
-  }
+  const tierUi = PRICING_TIER_UI[planId]
 
-  const creditOptions = planId === 'free' ? [] : planId === 'enterprise' ? [] : [
-    { credits: plan.credits, price: plan.price, label: `${plan.credits} ${t('pricing.creditsMonth')}` },
-    { credits: plan.credits * 2, price: Math.round(plan.price * 1.8), label: `${plan.credits * 2} ${t('pricing.creditsMonth')}` },
-    { credits: plan.credits * 4, price: Math.round(plan.price * 3.2), label: `${plan.credits * 4} ${t('pricing.creditsMonth')}` },
-    { credits: plan.credits * 8, price: Math.round(plan.price * 5.5), label: `${plan.credits * 8} ${t('pricing.creditsMonth')}` },
-  ]
+  const hasCreditOptions = planId !== 'explorer' && planId !== 'custom' && plan.price > 0
 
-  const currentSelection = selectedCredits 
-    ? creditOptions.find(o => o.credits === selectedCredits) 
+  const creditOptions = hasCreditOptions
+    ? [
+        { credits: plan.credits, price: plan.price, label: `${plan.credits} ${t('pricing.creditsMonth')}` },
+        { credits: plan.credits * 2, price: Math.round(plan.price * 1.8), label: `${plan.credits * 2} ${t('pricing.creditsMonth')}` },
+        { credits: plan.credits * 4, price: Math.round(plan.price * 3.2), label: `${plan.credits * 4} ${t('pricing.creditsMonth')}` },
+        { credits: plan.credits * 8, price: Math.round(plan.price * 5.5), label: `${plan.credits * 8} ${t('pricing.creditsMonth')}` },
+      ]
+    : []
+
+  const currentSelection = selectedCredits
+    ? creditOptions.find((o) => o.credits === selectedCredits)
     : creditOptions[0]
 
-  const displayPrice = currentSelection 
-    ? (billingCycle === 'yearly' ? Math.round(currentSelection.price * 0.83) : currentSelection.price)
-    : (billingCycle === 'yearly' && plan.priceYearly > 0 ? Math.round(plan.priceYearly / 12) : plan.price)
+  const displayPrice = currentSelection
+    ? billingCycle === 'yearly'
+      ? Math.round(currentSelection.price * 0.83)
+      : currentSelection.price
+    : billingCycle === 'yearly' && plan.priceYearly > 0
+      ? Math.round(plan.priceYearly / 12)
+      : plan.price
+
+  const handlePrimary = () => {
+    if (planId === 'custom') {
+      window.open(
+        'mailto:sales@similarweb.com?subject=AI%20Studio%20-%20Talk%20to%20us%20(custom%20plan)',
+        '_blank',
+        'noopener,noreferrer'
+      )
+      return
+    }
+    onUpgrade(planId)
+  }
 
   return (
-    <div className={`card p-6 relative flex flex-col ${plan.popular ? 'ring-2 ring-sw-blue-500 shadow-lg' : ''}`}>
+    <div
+      className={`relative grid h-full min-h-0 w-full flex-1 grid-rows-[auto_auto_minmax(2.75rem,auto)_auto_1fr] gap-y-5 rounded-2xl p-5 sm:p-6 ${plan.popular ? 'pt-8' : ''} ${tierUi.cardClass}`}
+    >
       {plan.popular && (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-sw-blue-600 text-white text-xs font-semibold rounded-full">
+        <span className="absolute -top-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-to-r from-sw-blue-600 to-indigo-600 px-3 py-1 text-xs font-semibold text-white shadow-md">
           {t('pricing.mostPopular')}
         </span>
       )}
 
-      <div className="h-16 flex items-center gap-3 mb-4">
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-          planId === 'free' ? 'bg-gray-100 text-gray-600' :
-          planId === 'starter' ? 'bg-green-100 text-green-600' :
-          planId === 'pro' ? 'bg-blue-100 text-blue-600' :
-          'bg-purple-100 text-purple-600'
-        }`}>
-          {planIcons[planId]}
-        </div>
-        <div>
-          <h3 className="text-lg font-bold text-sw-dark">{t(`plans.${planId}`)}</h3>
-        </div>
+      <div className="min-w-0 self-stretch">
+        <h3 className="text-lg font-bold leading-snug text-sw-dark">{t(`plans.${planId}`)}</h3>
+        <p className="mt-1 text-sm leading-snug text-sw-gray-600">{t(`pricing.${planId}Desc`)}</p>
       </div>
 
-      <div className="h-12 mb-4">
-        <p className="text-sm text-sw-gray-600">{t(`pricing.${planId}Desc`)}</p>
-      </div>
-
-      <div className="h-12 mb-4">
-        {plan.price === -1 ? (
-          <p className="text-2xl font-bold text-sw-dark">{t('common.contactSales')}</p>
+      <div className="min-h-[4.5rem] self-stretch">
+        {planId === 'custom' ? (
+          <div className="flex flex-col justify-end">
+            <p className="text-3xl font-bold tabular-nums tracking-tight text-sw-dark">{t('pricing.customPricing')}</p>
+            <p className="mt-1 text-sm leading-snug text-sw-gray-600">{t('pricing.creditsNegotiable')}</p>
+          </div>
+        ) : plan.price === 0 ? (
+          <div className="flex flex-col justify-end">
+            <div>
+              <span className="text-4xl font-bold tabular-nums tracking-tight text-sw-dark">$0</span>
+              <span className="text-sw-gray-500">/{t('common.month')}</span>
+            </div>
+          </div>
         ) : (
-          <>
-            <span className="text-3xl font-bold text-sw-dark">${displayPrice}</span>
-            <span className="text-sw-gray-500">/{t('common.month')}</span>
-          </>
+          <div>
+            <div>
+              <span className="text-4xl font-bold tabular-nums tracking-tight text-sw-dark">${displayPrice}</span>
+              <span className="text-sw-gray-500">/{t('common.month')}</span>
+            </div>
+            {billingCycle === 'yearly' && plan.price > 0 && (
+              <p className="mt-1 text-xs font-medium text-emerald-700">{t('pricing.savePercent', { percent: 17 })}</p>
+            )}
+          </div>
         )}
       </div>
 
-      <div className="h-14 mb-4">
-        {creditOptions.length > 0 ? (
-          <div className="relative">
+      {/* Same row height on every card so primary CTAs line up across Explorer / Strategist / Leader / Custom */}
+      <div className="relative min-h-[2.75rem] self-stretch">
+        {hasCreditOptions && creditOptions.length > 0 ? (
+          <>
             <button
+              type="button"
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="w-full p-3 bg-sw-gray-50 border border-sw-gray-200 rounded-xl flex items-center justify-between hover:border-sw-gray-300 transition-colors"
+              className="flex min-h-[2.75rem] w-full items-center justify-between gap-2 rounded-xl border border-sw-gray-200 bg-white/80 px-3 py-2.5 text-left transition hover:border-sw-gray-300"
             >
-              <span className="text-sm font-medium text-sw-dark">
+              <span className="min-w-0 flex-1 text-sm font-medium text-sw-dark">
                 {currentSelection?.label || `${plan.credits} ${t('pricing.creditsMonth')}`}
               </span>
-              <span className={`text-sw-gray-400 transition-transform text-xs ${isDropdownOpen ? 'rotate-180' : ''}`}>▼</span>
+              <span className={`shrink-0 text-sw-gray-400 transition-transform text-xs ${isDropdownOpen ? 'rotate-180' : ''}`}>
+                ▼
+              </span>
             </button>
-
             {isDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-sw-gray-200 rounded-xl shadow-lg z-10 overflow-hidden">
+              <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-xl border border-sw-gray-200 bg-white shadow-lg">
                 {creditOptions.map((option, idx) => (
                   <button
                     key={option.credits}
+                    type="button"
                     onClick={() => {
                       setSelectedCredits(option.credits)
                       setIsDropdownOpen(false)
                     }}
-                    className={`w-full p-3 flex items-center justify-between hover:bg-sw-blue-50 transition-colors text-sm ${
-                      (selectedCredits === option.credits || (!selectedCredits && idx === 0)) 
-                        ? 'bg-sw-blue-50 text-sw-blue-700' 
+                    className={`flex w-full items-center justify-between p-3 text-sm transition hover:bg-sw-blue-50 ${
+                      selectedCredits === option.credits || (!selectedCredits && idx === 0)
+                        ? 'bg-sw-blue-50 text-sw-blue-800'
                         : ''
                     }`}
                   >
                     <span className="font-medium">{option.label}</span>
                     {(selectedCredits === option.credits || (!selectedCredits && idx === 0)) && (
-                      <Check className="w-4 h-4 text-sw-blue-600" />
+                      <Check className="h-4 w-4 shrink-0 text-sw-blue-600" />
                     )}
                   </button>
                 ))}
               </div>
             )}
-          </div>
-        ) : planId === 'free' ? (
-          <div className="p-3 bg-sw-gray-50 rounded-xl">
-            <div className="flex items-center gap-2">
-              <Coins className="w-4 h-4 text-amber-500" />
-              <span className="font-semibold text-sw-dark">{plan.credits} {t('pricing.creditsMonth')}</span>
-            </div>
-          </div>
-        ) : (
-          <div className="p-3 bg-purple-50 rounded-xl">
-            <div className="flex items-center gap-2">
-              <Coins className="w-4 h-4 text-purple-500" />
-              <span className="font-semibold text-purple-700">{t('pricing.customCredits')}</span>
-            </div>
-          </div>
-        )}
+          </>
+        ) : null}
       </div>
 
       <button
-        onClick={() => onUpgrade(planId)}
-        disabled={isCurrentPlan}
-        className={`w-full py-3 px-4 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
-          isCurrentPlan
-            ? 'bg-sw-gray-100 text-sw-gray-400 cursor-not-allowed'
+        type="button"
+        onClick={handlePrimary}
+        disabled={planId !== 'custom' && isCurrentPlan}
+        className={`flex w-full items-center justify-center gap-2 self-stretch rounded-xl py-3 px-4 text-sm font-semibold transition ${
+          planId !== 'custom' && isCurrentPlan
+            ? 'cursor-not-allowed bg-sw-gray-100 text-sw-gray-400'
             : plan.popular
-            ? 'btn-primary'
-            : plan.price === -1
-            ? 'bg-purple-600 text-white hover:bg-purple-700'
-            : 'bg-sw-gray-900 text-white hover:bg-sw-gray-800'
+              ? 'btn-primary shadow-md'
+              : planId === 'custom'
+                ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md hover:from-violet-700 hover:to-indigo-700'
+                : plan.price === 0
+                  ? 'border border-sw-gray-200 bg-white text-sw-dark hover:bg-sw-gray-50'
+                  : 'bg-sw-gray-900 text-white hover:bg-sw-gray-800'
         }`}
       >
-        {isCurrentPlan ? t('common.currentPlan') : plan.price === -1 ? t('common.contactSales') : t('common.upgrade')}
-        {!isCurrentPlan && plan.price !== -1 && <ArrowRight className="w-4 h-4" />}
+        {planId === 'custom' ? (
+          <>
+            {t('pricing.talkToUs')}
+            <ArrowRight className="h-4 w-4" />
+          </>
+        ) : isCurrentPlan ? (
+          t('common.currentPlan')
+        ) : plan.price === 0 ? (
+          <>
+            {t('common.getStarted')}
+            <ArrowRight className="h-4 w-4" />
+          </>
+        ) : (
+          <>
+            {t('common.upgrade')}
+            <ArrowRight className="h-4 w-4" />
+          </>
+        )}
       </button>
 
-      {/* Data Access - Prominent position */}
-      <div className="mt-5 pt-4 border-t border-sw-gray-100">
-        <p className="text-xs font-semibold text-sw-gray-500 mb-2">{t('dataAccess.dataTypes')}</p>
-        <div className="space-y-1.5">
-          <DataTypeRow 
-            icon={<Globe className="w-3 h-3" />}
-            label={t('dataAccess.webBasic')}
-            included={plan.dataAccess.webBasic}
-          />
-          <DataTypeRow 
-            icon={<BarChart3 className="w-3 h-3" />}
-            label={t('dataAccess.webFull')}
-            included={plan.dataAccess.webFull}
-          />
-          <DataTypeRow 
-            icon={<Search className="w-3 h-3" />}
-            label={t('dataAccess.seoPaid')}
-            included={plan.dataAccess.seoPaid}
-          />
-          <DataTypeRow 
-            icon={<Smartphone className="w-3 h-3" />}
-            label={t('dataAccess.appsData')}
-            included={plan.dataAccess.apps}
-          />
-        </div>
-      </div>
+      <div className="flex h-full min-h-0 min-w-0 flex-col border-t border-sw-gray-100 pt-5">
+        {tierUi.listIntroKey && !tierUi.inheritKey && (
+          <p className="mb-3 shrink-0 text-sm font-semibold leading-snug text-sw-dark">{t(tierUi.listIntroKey)}</p>
+        )}
+        {tierUi.inheritKey && (
+          <p className="mb-3 shrink-0 text-sm font-semibold leading-snug text-sw-dark">{t(tierUi.inheritKey)}</p>
+        )}
+        <ul className="shrink-0 space-y-2.5">
+          {planId === 'custom'
+            ? PRICING_TIER_UI.custom.plusKeys.map((key) => (
+                <li
+                  key={key}
+                  className="grid grid-cols-[1rem_minmax(0,1fr)] items-start gap-x-3 text-sm leading-snug text-sw-gray-700"
+                >
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+                  <span className="min-w-0">{t(key)}</span>
+                </li>
+              ))
+            : TIER_PLUS_FEATURE_IDS[planId].map((featureId) => (
+                <li
+                  key={featureId}
+                  className="grid grid-cols-[1rem_minmax(0,1fr)] items-start gap-x-3 text-sm leading-snug text-sw-gray-700"
+                >
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+                  <span className="min-w-0">{t(`features.matrix.${featureId}`)}</span>
+                </li>
+              ))}
+        </ul>
 
-      {/* Features - Credits & Deep Research */}
-      <ul className="mt-4 space-y-2 flex-grow">
-        {plan.features.map((featureKey, idx) => {
-          const isNegative = featureKey.includes('noRollover') || featureKey.includes('noDeepResearch')
-          return (
-            <li key={idx} className="flex items-start gap-2 text-sm">
-              {isNegative ? (
-                <X className="w-4 h-4 text-sw-gray-300 mt-0.5 flex-shrink-0" />
-              ) : (
-                <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-              )}
-              <span className={isNegative ? 'text-sw-gray-400' : 'text-sw-gray-600'}>
-                {t(featureKey)}
-              </span>
-            </li>
-          )
-        })}
-      </ul>
-
-      {/* Historical Data & Country Access - Bottom */}
-      <div className="mt-4 pt-3 border-t border-sw-gray-100">
-        <div className="flex items-center gap-2 text-xs text-sw-gray-500">
-          <Check className="w-3 h-3 text-green-500" />
-          <span>
-            {plan.dataAccess.historicalMonths >= 36 
-              ? t('features.history36Months') 
-              : t('features.history15Months')}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-sw-gray-500 mt-1">
-          <Check className="w-3 h-3 text-green-500" />
-          <span>{t('features.allCountries')}</span>
+        <div className="mt-auto w-full min-w-0 border-t border-sw-gray-100 pt-4">
+          <table className="w-full table-fixed border-collapse text-left text-xs leading-snug">
+            <colgroup>
+              <col className="w-[58%]" />
+              <col className="w-[42%]" />
+            </colgroup>
+            <tbody>
+              <tr className="border-b border-sw-gray-100/80">
+                <td className="break-words py-2 pr-2 align-middle text-sw-gray-600">
+                  {t('pricing.packageDailyCreditsLabel')}
+                </td>
+                <td className="break-words py-2 pl-2 text-right align-middle font-medium tabular-nums text-sw-dark">
+                  {planId === 'custom'
+                    ? t('pricing.packageDataCustom')
+                    : `${plan.dailyCredits.toLocaleString()} (${plan.dailyCreditMult})`}
+                </td>
+              </tr>
+              <tr className="border-b border-sw-gray-100/80">
+                <td className="break-words py-2 pr-2 align-middle text-sw-gray-600">{t('pricing.packageUsersLabel')}</td>
+                <td className="break-words py-2 pl-2 text-right align-middle font-medium text-sw-dark">
+                  {packageUsersDisplay(plan, t)}
+                </td>
+              </tr>
+              <tr className="border-b border-sw-gray-100/80">
+                <td className="break-words py-2 pr-2 align-middle text-sw-gray-600">{t('pricing.packageCountryLabel')}</td>
+                <td className="break-words py-2 pl-2 text-right align-middle font-medium text-sw-dark">
+                  {plan.dataAccess.countries === 'all' ? t('pricing.packageCountryAll') : String(plan.dataAccess.countries)}
+                </td>
+              </tr>
+              <tr className="border-b border-sw-gray-100/80">
+                <td className="break-words py-2 pr-2 align-middle text-sw-gray-600">{t('pricing.packageHistoricalLabel')}</td>
+                <td className="break-words py-2 pl-2 text-right align-middle font-medium tabular-nums text-sw-dark">
+                  {t('pricing.packageHistoryUpToMonths', { months: plan.dataAccess.historicalMonths })}
+                </td>
+              </tr>
+              <tr className="border-b border-sw-gray-100/80">
+                <td className="break-words py-2 pr-2 align-middle text-sw-gray-600">{t('pricing.packageDashboardsLabel')}</td>
+                <td className="break-words py-2 pl-2 text-right align-middle font-medium text-sw-dark">
+                  {packageDashboardsDisplay(plan, t)}
+                </td>
+              </tr>
+              <tr>
+                <td className="break-words py-2 pr-2 align-middle text-sw-gray-600">{t('pricing.packageDeepResearchLabel')}</td>
+                <td className="break-words py-2 pl-2 text-right align-middle font-medium text-sw-dark">
+                  {packageDeepResearchDisplay(plan, t)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

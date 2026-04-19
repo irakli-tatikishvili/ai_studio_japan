@@ -10,66 +10,94 @@ export const CREDIT_COSTS = {
   dataExport: 100,
 }
 
-// Plan configurations
+// Plan configurations — Explorer (free), Strategist ($199), Leader ($400); x = 50 base unit
 export const PLANS = {
-  free: {
-    id: 'free',
-    name: 'Free',
+  explorer: {
+    id: 'explorer',
+    name: 'Explorer',
     price: 0,
     priceYearly: 0,
-    credits: 100,
+    credits: 500,
+    dailyCredits: 50,
+    monthlyCreditMult: '10×',
+    dailyCreditMult: 'x',
+    creditsAddOn: false,
+    seatUsers: 1,
     limits: {
-      chats: 4,
+      chats: 2,
       dashboards: 0,
       deepResearch: false,
     },
     dataAccess: {
       historicalMonths: 15,
       countries: 'all',
-      webBasic: true,      // Limited website performance
-      webFull: false,      // All web metrics
-      seoPaid: false,      // SEO and Paid data
-      apps: false,         // App data
+      webBasic: true,
+      webFull: false,
+      seoPaid: false,
+      apps: false,
+      websiteTechnologies: false,
+      web: true,
+      app: false,
+      retail: false,
     },
     features: [
-      'features.credits100',
-      'features.noRollover',
-      'features.noDeepResearch',
+      'features.trafficEngagement',
+      'features.monthlyCredits500',
+      'features.countryAllHistory15',
+      'features.creditsAddOnNo',
+      'features.excludedWebsiteTechnologies',
     ],
   },
-  starter: {
-    id: 'starter',
-    name: 'Starter',
-    price: 119,
-    priceYearly: 1190,
-    credits: 250,
+  strategist: {
+    id: 'strategist',
+    name: 'Strategist',
+    price: 199,
+    priceYearly: 1990,
+    credits: 2500,
+    dailyCredits: 250,
+    monthlyCreditMult: '50×',
+    dailyCreditMult: '5×',
+    creditsAddOn: true,
+    seatUsers: 1,
     limits: {
-      chats: 10,
-      dashboards: 1,
+      chats: 12,
+      dashboards: 2,
       deepResearch: false,
     },
     dataAccess: {
       historicalMonths: 15,
       countries: 'all',
       webBasic: true,
-      webFull: true,       // Traffic, Engagement, Marketing Channels
+      webFull: true,
       seoPaid: false,
       apps: false,
+      websiteTechnologies: false,
+      web: true,
+      app: false,
+      retail: false,
     },
     features: [
-      'features.credits250',
-      'features.rollover1Month',
-      'features.noDeepResearch',
+      'features.everythingInExplorer',
+      'features.strategistWebSuite',
+      'features.monthlyCredits2500',
+      'features.creditsAddOnYes',
+      'features.excludedWebsiteTechnologies',
     ],
+    popular: true,
   },
-  pro: {
-    id: 'pro',
-    name: 'Pro',
-    price: 229,
-    priceYearly: 2290,
-    credits: 500,
+  leader: {
+    id: 'leader',
+    name: 'Leader',
+    price: 400,
+    priceYearly: 4000,
+    credits: 5000,
+    dailyCredits: 500,
+    monthlyCreditMult: '100×',
+    dailyCreditMult: '10×',
+    creditsAddOn: true,
+    seatUsers: 1,
     limits: {
-      chats: 20,
+      chats: 30,
       dashboards: -1,
       deepResearch: true,
     },
@@ -78,43 +106,52 @@ export const PLANS = {
       countries: 'all',
       webBasic: true,
       webFull: true,
-      seoPaid: true,       // SEO and Paid data
+      seoPaid: true,
       apps: false,
-      dashboards: true,    // Dashboard access
+      websiteTechnologies: false,
+      web: true,
+      app: false,
+      retail: false,
     },
     features: [
-      'features.credits500',
-      'features.rollover3Months',
-      'features.deepResearchIncluded',
-      'features.dashboardAccess',
+      'features.everythingInStrategist',
+      'features.leaderSeoPpcSuite',
+      'features.monthlyCredits5000',
+      'features.creditsAddOnYes',
+      'features.excludedWebsiteTechnologies',
     ],
-    popular: true,
   },
-  enterprise: {
-    id: 'enterprise',
-    name: 'Enterprise',
+  custom: {
+    id: 'custom',
+    name: 'Talk to us',
     price: -1,
     priceYearly: -1,
     credits: -1,
+    dailyCredits: -1,
+    monthlyCreditMult: '',
+    dailyCreditMult: '',
+    creditsAddOn: true,
+    seatUsers: 'custom',
     limits: {
       chats: -1,
       dashboards: -1,
       deepResearch: true,
     },
     dataAccess: {
-      historicalMonths: 36,
+      historicalMonths: 37,
       countries: 'all',
       webBasic: true,
       webFull: true,
       seoPaid: true,
-      apps: true,          // App data
-      dashboards: true,    // Dashboard access
+      apps: true,
+      websiteTechnologies: false,
+      web: true,
+      app: true,
+      retail: true,
     },
     features: [
-      'features.creditsCustom',
-      'features.rolloverUnlimited',
-      'features.deepResearchUnlimited',
-      'features.dashboardAccess',
+      'features.tier.customIntro',
+      'features.tier.customBullets',
     ],
   },
 }
@@ -126,39 +163,36 @@ export const CREDIT_PACKAGE = {
 }
 
 export function UsageProvider({ children }) {
-  // Simulated user subscription state - FREE TIER
   const [subscription, setSubscription] = useState({
-    plan: 'free',
+    plan: 'explorer',
     billingCycle: 'monthly',
     startDate: new Date('2024-01-15'),
     nextBillingDate: new Date('2024-02-15'),
   })
 
-  // Credit-based usage state - Free tier has 100 credits, user has used 97 (only 3 left)
   const [usage, setUsage] = useState({
-    creditsUsed: 97, // out of 100 for free tier - only 3 credits left!
-    chatQueries: 3,
+    creditsUsed: 420,
+    chatQueries: 2,
     dashboardsCreated: 0,
     dashboardRefreshes: 0,
     dataExports: 0,
   })
 
-  // Consumption breakdown by source - Free tier
   const [consumptionBySource, setConsumptionBySource] = useState({
     direct: {
-      credits: 50,
-      chats: 2,
+      credits: 250,
+      chats: 1,
       dashboards: 0,
       lastMonth: 0,
     },
     mcp: {
-      credits: 25,
+      credits: 120,
       chats: 1,
       dashboards: 0,
       lastMonth: 0,
     },
     api: {
-      credits: 0,
+      credits: 50,
       chats: 0,
       dashboards: 0,
       lastMonth: 0,
@@ -167,10 +201,10 @@ export function UsageProvider({ children }) {
 
   const [usageHistory, setUsageHistory] = useState([
     { date: '2024-01-01', credits: 0, chats: 0 },
-    { date: '2024-01-05', credits: 25, chats: 1 },
-    { date: '2024-01-10', credits: 50, chats: 2 },
-    { date: '2024-01-15', credits: 75, chats: 3 },
-    { date: '2024-01-20', credits: 75, chats: 3 },
+    { date: '2024-01-05', credits: 150, chats: 1 },
+    { date: '2024-01-10', credits: 300, chats: 1 },
+    { date: '2024-01-15', credits: 420, chats: 2 },
+    { date: '2024-01-20', credits: 420, chats: 2 },
   ])
 
   const currentPlan = PLANS[subscription.plan]

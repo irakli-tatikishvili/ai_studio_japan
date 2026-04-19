@@ -7,10 +7,10 @@ import { useLanguage } from '../context/LanguageContext'
 export default function UpgradeModal({ context, onClose }) {
   const { currentPlan, usage, getCreditsPercentage } = useUsage()
   const { t } = useLanguage()
-  const [selectedPlan, setSelectedPlan] = useState('pro')
+  const [selectedPlan, setSelectedPlan] = useState('leader')
 
-  const starterPlan = PLANS.starter
-  const proPlan = PLANS.pro
+  const strategistPlan = PLANS.strategist
+  const leaderPlan = PLANS.leader
 
   const creditsUsed = usage.creditsUsed
   const creditsLimit = currentPlan.credits
@@ -62,7 +62,7 @@ export default function UpgradeModal({ context, onClose }) {
         {/* Body */}
         <div className="p-6">
           <h3 className="text-lg font-semibold text-sw-dark mb-1">
-            {t('modal.upgradeToProContinue')}
+            {t('modal.upgradeToLeaderContinue')}
           </h3>
           <p className="text-sw-gray-500 text-sm mb-5">
             {t('modal.getMoreCredits')}
@@ -70,63 +70,70 @@ export default function UpgradeModal({ context, onClose }) {
 
           {/* Plan Options */}
           <div className="space-y-3 mb-5">
-            {/* Starter Option */}
+            {/* Strategist Option */}
             <button
-              onClick={() => setSelectedPlan('starter')}
+              onClick={() => setSelectedPlan('strategist')}
               className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left ${
-                selectedPlan === 'starter'
+                selectedPlan === 'strategist'
                   ? 'border-sw-blue-500 bg-sw-blue-50'
                   : 'border-sw-gray-200 hover:border-sw-gray-300'
               }`}
             >
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
-                selectedPlan === 'starter' ? 'bg-sw-blue-600 text-white' : 'bg-sw-gray-100 text-sw-gray-500'
+                selectedPlan === 'strategist' ? 'bg-sw-blue-600 text-white' : 'bg-sw-gray-100 text-sw-gray-500'
               }`}>
-                {currentPlan.id === 'starter' ? t('modal.now') : ''}
+                {currentPlan.id === 'strategist' ? t('modal.now') : ''}
               </div>
               <div className="flex-1">
-                <p className="font-semibold text-sw-dark">{t('plans.starter')}</p>
-                <p className="text-xs text-sw-gray-500">{starterPlan.credits} {t('modal.creditsPerMonth')}</p>
+                <p className="font-semibold text-sw-dark">{t('plans.strategist')}</p>
+                <p className="text-xs text-sw-gray-500">{strategistPlan.credits} {t('modal.creditsPerMonth')}</p>
               </div>
-              {selectedPlan === 'starter' && (
+              <div className="text-right">
+                <p className="font-bold text-sw-dark">${strategistPlan.price}</p>
+                <p className="text-xs text-sw-gray-500">/{t('common.month')}</p>
+              </div>
+              {selectedPlan === 'strategist' && (
                 <Check className="w-5 h-5 text-sw-blue-600" />
               )}
             </button>
 
-            {/* Pro Option */}
+            {/* Leader Option */}
             <button
-              onClick={() => setSelectedPlan('pro')}
+              onClick={() => setSelectedPlan('leader')}
               className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left ${
-                selectedPlan === 'pro'
+                selectedPlan === 'leader'
                   ? 'border-sw-blue-500 bg-sw-blue-50'
                   : 'border-sw-gray-200 hover:border-sw-gray-300'
               }`}
             >
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                selectedPlan === 'pro' ? 'bg-sw-blue-600 text-white' : 'bg-sw-gray-100 text-sw-gray-500'
+                selectedPlan === 'leader' ? 'bg-sw-blue-600 text-white' : 'bg-sw-gray-100 text-sw-gray-500'
               }`}>
                 <Zap className="w-4 h-4" />
               </div>
               <div className="flex-1">
-                <p className="font-semibold text-sw-dark">{t('plans.pro')}</p>
-                <p className="text-xs text-sw-blue-600">{proPlan.credits} {t('modal.creditsPerMonth')}</p>
+                <p className="font-semibold text-sw-dark">{t('plans.leader')}</p>
+                <p className="text-xs text-sw-blue-600">{leaderPlan.credits} {t('modal.creditsPerMonth')}</p>
               </div>
               <div className="text-right">
-                <p className="font-bold text-sw-dark">${proPlan.price}</p>
+                <p className="font-bold text-sw-dark">${leaderPlan.price}</p>
                 <p className="text-xs text-sw-gray-500">/{t('common.month')}</p>
               </div>
+              {selectedPlan === 'leader' && (
+                <Check className="w-5 h-5 text-sw-blue-600 flex-shrink-0" />
+              )}
             </button>
           </div>
 
-          {/* Features included in Pro */}
+          {/* Features included in Leader */}
           <div className="mb-6">
             <p className="text-sm font-medium text-sw-gray-700 mb-3">
-              {t('modal.alsoIncludedInPro')}
+              {t('modal.alsoIncludedInLeader')}
             </p>
             <div className="grid grid-cols-2 gap-x-4 gap-y-2">
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-sw-blue-600 flex-shrink-0" />
-                <span className="text-sm text-sw-gray-600">{t('modal.everythingInStarter')}</span>
+                <span className="text-sm text-sw-gray-600">{t('modal.everythingInStrategist')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-sw-blue-600 flex-shrink-0" />

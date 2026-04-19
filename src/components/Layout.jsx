@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { Outlet, NavLink } from 'react-router-dom'
-import { Sparkles, LayoutDashboard, CreditCard, MessageSquare, Flag, Gift, ClipboardList } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Outlet, NavLink, useLocation } from 'react-router-dom'
+import { Sparkles, LayoutDashboard, CreditCard, MessageSquare, Flag, Gift, ClipboardList, ChevronDown } from 'lucide-react'
 import UsageNotificationBar from './UsageNotificationBar'
 import LanguageToggle from './LanguageToggle'
 import ReferralModal from './ReferralModal'
@@ -8,7 +8,41 @@ import { useLanguage } from '../context/LanguageContext'
 
 export default function Layout() {
   const { t } = useLanguage()
+  const location = useLocation()
   const [showReferralModal, setShowReferralModal] = useState(false)
+  const [pricingMenuOpen, setPricingMenuOpen] = useState(false)
+  const pricingNavRef = useRef(null)
+
+  const isPricingSection = location.pathname === '/pricing' || location.pathname === '/'
+
+  const pricingMethodIds = ['tiers', 'uniformCredits', 'payPerQuery', 'credits', 'freeTier']
+  const pricingMethodLabelKey = {
+    tiers: 'tierBased',
+    uniformCredits: 'uniformCredits',
+    payPerQuery: 'payPerQuery',
+    credits: 'moduleCredits',
+    freeTier: 'moduleFreeTier',
+  }
+
+  const modelParam = new URLSearchParams(location.search).get('model')
+  const activePricingModel = pricingMethodIds.includes(modelParam) ? modelParam : 'tiers'
+
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setPricingMenuOpen(false)
+    }
+    const onPointerDown = (e) => {
+      if (pricingNavRef.current && !pricingNavRef.current.contains(e.target)) {
+        setPricingMenuOpen(false)
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    document.addEventListener('mousedown', onPointerDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      document.removeEventListener('mousedown', onPointerDown)
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-sw-gray-50">
@@ -42,19 +76,46 @@ export default function Layout() {
                 <MessageSquare className="w-4 h-4" />
                 {t('nav.aiStudio')}
               </NavLink>
-              <NavLink
-                to="/pricing"
-                className={({ isActive }) =>
-                  `flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive
+              <div className="relative" ref={pricingNavRef}>
+                <button
+                  type="button"
+                  onClick={() => setPricingMenuOpen((open) => !open)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isPricingSection
                       ? 'bg-sw-blue-50 text-sw-blue-700'
                       : 'text-sw-gray-600 hover:bg-sw-gray-100'
-                  }`
-                }
-              >
-                <CreditCard className="w-4 h-4" />
-                {t('nav.pricing')}
-              </NavLink>
+                  }`}
+                  aria-expanded={pricingMenuOpen}
+                  aria-haspopup="true"
+                >
+                  <CreditCard className="w-4 h-4" />
+                  {t('nav.pricing')}
+                  <ChevronDown
+                    className={`w-4 h-4 transition-transform ${pricingMenuOpen ? 'rotate-180' : ''}`}
+                    aria-hidden
+                  />
+                </button>
+                {pricingMenuOpen && (
+                  <div className="absolute left-0 top-full mt-1 min-w-[14rem] max-w-[20rem] rounded-lg border border-sw-gray-200 bg-white py-1 shadow-lg z-50">
+                    {pricingMethodIds.map((methodId) => (
+                      <NavLink
+                        key={methodId}
+                        to={`/pricing?model=${methodId}`}
+                        onClick={() => setPricingMenuOpen(false)}
+                        className={() =>
+                          `block px-4 py-2 text-sm font-medium transition-colors ${
+                            activePricingModel === methodId
+                              ? 'bg-sw-blue-50 text-sw-blue-700'
+                              : 'text-sw-gray-700 hover:bg-sw-gray-50'
+                          }`
+                        }
+                      >
+                        {t(`pricing.${pricingMethodLabelKey[methodId]}`)}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
               <NavLink
                 to="/dashboard"
                 className={({ isActive }) =>

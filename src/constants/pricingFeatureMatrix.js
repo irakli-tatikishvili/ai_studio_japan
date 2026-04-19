@@ -1,0 +1,115 @@
+/** Feature comparison rows — order matches product matrix. x = 50 for credit multipliers. */
+
+export const PRICING_FEATURE_IDS = [
+  'trafficEngagement',
+  'newVsReturning',
+  'categoryLeaders',
+  'multiDomainComparisons',
+  'marketAnalysisCustomIndustry',
+  'audienceDemographics',
+  'marketingChannels',
+  'audienceInterestsOverlap',
+  'keywordResearchAnalysis',
+  'landingPagesOrganicPaid',
+  'subdomainAggregation',
+  'keywordGapAnalysis',
+  'trendingKeywords',
+  'brandProtection',
+  'popularPagesFolders',
+  'ppcMarketing',
+  'dashboards',
+  'deepResearch',
+]
+
+/** Which features each self-serve plan includes (custom = all negotiated — show all included in UI). */
+export const FEATURE_INCLUDED_BY_PLAN = {
+  explorer: {
+    trafficEngagement: true,
+    newVsReturning: false,
+    categoryLeaders: false,
+    multiDomainComparisons: false,
+    marketAnalysisCustomIndustry: false,
+    audienceDemographics: false,
+    marketingChannels: false,
+    audienceInterestsOverlap: false,
+    keywordResearchAnalysis: false,
+    landingPagesOrganicPaid: false,
+    subdomainAggregation: false,
+    keywordGapAnalysis: false,
+    trendingKeywords: false,
+    brandProtection: false,
+    popularPagesFolders: false,
+    ppcMarketing: false,
+    dashboards: false,
+    deepResearch: false,
+  },
+  strategist: {
+    trafficEngagement: true,
+    newVsReturning: true,
+    categoryLeaders: true,
+    multiDomainComparisons: true,
+    marketAnalysisCustomIndustry: true,
+    audienceDemographics: true,
+    marketingChannels: true,
+    audienceInterestsOverlap: true,
+    keywordResearchAnalysis: false,
+    landingPagesOrganicPaid: false,
+    subdomainAggregation: false,
+    keywordGapAnalysis: false,
+    trendingKeywords: false,
+    brandProtection: false,
+    popularPagesFolders: false,
+    ppcMarketing: false,
+    dashboards: true,
+    deepResearch: false,
+  },
+  leader: {
+    trafficEngagement: true,
+    newVsReturning: true,
+    categoryLeaders: true,
+    multiDomainComparisons: true,
+    marketAnalysisCustomIndustry: true,
+    audienceDemographics: true,
+    marketingChannels: true,
+    audienceInterestsOverlap: true,
+    keywordResearchAnalysis: true,
+    landingPagesOrganicPaid: true,
+    subdomainAggregation: true,
+    keywordGapAnalysis: true,
+    trendingKeywords: true,
+    brandProtection: true,
+    popularPagesFolders: true,
+    ppcMarketing: true,
+    dashboards: true,
+    deepResearch: true,
+  },
+}
+
+export function isFeatureIncluded(planId, featureId) {
+  if (planId === 'custom') return true
+  return FEATURE_INCLUDED_BY_PLAN[planId]?.[featureId] === true
+}
+
+/** Features to show per card — only positives (Explorer = base; paid tiers = delta vs previous). */
+export const TIER_PLUS_FEATURE_IDS = {
+  explorer: ['trafficEngagement'],
+  strategist: [
+    'newVsReturning',
+    'categoryLeaders',
+    'multiDomainComparisons',
+    'marketAnalysisCustomIndustry',
+    'audienceDemographics',
+    'marketingChannels',
+    'audienceInterestsOverlap',
+  ],
+  leader: [
+    'keywordResearchAnalysis',
+    'landingPagesOrganicPaid',
+    'subdomainAggregation',
+    'keywordGapAnalysis',
+    'trendingKeywords',
+    'brandProtection',
+    'popularPagesFolders',
+    'ppcMarketing',
+  ],
+}
